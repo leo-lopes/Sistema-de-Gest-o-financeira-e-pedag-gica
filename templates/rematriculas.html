@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+{% block title %}Rematrículas{% endblock %}
+{% block content %}
+<h2>🔄 Rematrículas</h2>
+
+<!-- Abas -->
+<div style="display:flex;gap:0;margin-bottom:0;border-bottom:2px solid #2c3e50;">
+    <a href="{{ url_for('listar_rematriculas', aba='turmas', periodo=periodo_filtro, professor_id=professor_filtro) }}"
+        style="padding:10px 22px;text-decoration:none;font-weight:bold;border-radius:6px 6px 0 0;border:1px solid #2c3e50;border-bottom:none;
+               background:{% if aba=='turmas' %}#2c3e50{% else %}#f5f5f5{% endif %};
+               color:{% if aba=='turmas' %}white{% else %}#2c3e50{% endif %};">
+        Por turma
+    </a>
+    <a href="{{ url_for('listar_rematriculas', aba='professor', periodo=periodo_filtro, professor_id=professor_filtro) }}"
+        style="padding:10px 22px;text-decoration:none;font-weight:bold;border-radius:6px 6px 0 0;border:1px solid #2c3e50;border-bottom:none;margin-left:4px;
+               background:{% if aba=='professor' %}#2c3e50{% else %}#f5f5f5{% endif %};
+               color:{% if aba=='professor' %}white{% else %}#2c3e50{% endif %};">
+        Por professor
+    </a>
+    <a href="{{ url_for('listar_rematriculas', aba='aluno') }}" style="padding:10px 22px;text-decoration:none;font-weight:bold;border-radius:6px 6px 0 0;border:1px solid #2c3e50;border-bottom:none;margin-left:4px;
+               background:{% if aba=='aluno' %}#2c3e50{% else %}#f5f5f5{% endif %};
+               color:{% if aba=='aluno' %}white{% else %}#2c3e50{% endif %};">
+        Por aluno
+    </a>
+</div>
+
+<!-- Filtros (abas turmas e professor) -->
+{% if aba in ['turmas','professor'] %}
+<form method="get" action="{{ url_for('listar_rematriculas') }}"
+    style="margin:20px 0;padding:15px;background:#f5f5f5;border-radius:5px;">
+    <input type="hidden" name="aba" value="{{ aba }}">
+    <div style="display:flex;gap:15px;align-items:flex-end;flex-wrap:wrap;">
+        <div>
+            <label style="display:block;font-size:13px;margin-bottom:3px;">Período</label>
+            <select name="periodo" style="padding:7px 10px;border-radius:4px;border:1px solid #ccc;">
+                <option value="">Todos</option>
+                {% for p in periodos %}
+                <option value="{{ p.periodo }}" {% if periodo_filtro==p.periodo %}selected{% endif %}>
+                    {{ p.periodo }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label style="display:block;font-size:13px;margin-bottom:3px;">Professor</label>
+            <select name="professor_id" style="padding:7px 10px;border-radius:4px;border:1px solid #ccc;">
+                <option value="">Todos</option>
+                {% for p in professores %}
+                <option value="{{ p.id }}" {% if professor_filtro==p.id|string %}selected{% endif %}>
+                    {{ p.nome }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+            <button type="submit"
+                style="background:#007bff;color:white;padding:8px 15px;border:none;border-radius:4px;cursor:pointer;">
+                🔍 Filtrar
+            </button>
+            <a href="{{ url_for('listar_rematriculas', aba=aba) }}" style="color:#666;">Limpar</a>
+        </div>
+    </div>
+</form>
+{% endif %}
+
+
+<!-- ═══════════════════════════════
+     ABA: POR TURMA
+     ═══════════════════════════════ -->
+{% if aba == 'turmas' %}
+{% if turmas %}
+{% for t in turmas %}
+{% set total = t.total or 0 %}
+{% set renovados = t.renovados or 0 %}
+<div style="background:white;border-radius:8px;border:1px solid #e0e0e0;margin-bottom:16px;overflow:hidden;">
+    <div
+        style="padding:14px 18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;border-bottom:1px solid #eee;">
+        <div>
+            <a href="{{ url_for('detalhe_turma_rematricula', turma_id=t.turma_id) }}"
+                style="font-size:16px;font-weight:bold;color:#2c3e50;text-decoration:none;">
+                {{ t.tipo }} {{ t.numero }}
+            </a>
+            <span style="color:#888;font-size:13px;margin-left:10px;">
+                {% if t.dia_semana %}{{ t.dia_semana }}{% endif %}
+                {% if t.horario %} · {{ t.horario }}{% endif %}
+                {% if t.professor %} · {{ t.professor }}{% endif %}
+                {% if t.periodo %} · {{ t.periodo }}{% endif %}
+            </span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <span
+                style="background:#d4edda;color:#155724;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:bold;">
+                ✅ {{ renovados }} renovaram
+            </span>
+            {% if t.em_analise %}
+            <span
+                style="background:#fff3cd;color:#856404;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:bold;">
+                🟡 {{ t.em_analise }} em análise
+            </span>
+            {% endif %}
+            {% if t.nao_renovaram %}
+            <span
+                style="background:#f8d7da;color:#721c24;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:bold;">
+                ❌ {{ t.nao_renovaram }} não renovaram
+            </span>
+            {% endif %}
+            {% if t.pendentes %}
+            <span
+                style="background:#cce5ff;color:#004085;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:bold;">
+                🔵 {{ t.pendentes }} pendentes
+            </span>
+            {% endif %}
+            <span style="background:#f5f5f5;color:#333;padding:3px 10px;border-radius:10px;font-size:12px;">
+                Total: {{ total }}
+            </span>
+        </div>
+    </div>
+    {% if total > 0 %}
+    <div style="padding:10px 18px;background:#fafafa;">
+        <div style="background:#e0e0e0;border-radius:99px;height:6px;overflow:hidden;">
+            <div style="background:#4caf50;height:100%;width:{{ ((renovados/total)*100)|round|int }}%;"></div>
+        </div>
+        <div style="font-size:11px;color:#888;margin-top:4px;">
+            Taxa de renovação: <strong>{{ ((renovados/total)*100)|round(1) }}%</strong>
+            — <a href="{{ url_for('detalhe_turma_rematricula', turma_id=t.turma_id) }}" style="color:#007bff;">Ver
+                alunos →</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endfor %}
+{% else %}
+<p style="color:#888;margin-top:20px;">Nenhuma turma ativa encontrada.</p>
+{% endif %}
+
+
+<!-- ═══════════════════════════════
+     ABA: POR PROFESSOR
+     ═══════════════════════════════ -->
+{% elif aba == 'professor' %}
+{% if por_professor %}
+<table style="margin-top:20px;">
+    <thead>
+        <tr>
+            <th>Professor</th>
+            <th>Turmas</th>
+            <th>Total alunos</th>
+            <th>Renovaram</th>
+            <th>Em análise</th>
+            <th>Não renovaram</th>
+            <th>Pendentes</th>
+            <th>Taxa</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in por_professor %}
+        {% set total = p.total_alunos or 0 %}
+        {% set renovados = p.renovados or 0 %}
+        <tr>
+            <td><strong>{{ p.professor }}</strong></td>
+            <td>{{ p.total_turmas }}</td>
+            <td>{{ total }}</td>
+            <td><span style="color:#155724;font-weight:bold;">{{ renovados }}</span></td>
+            <td><span style="color:#856404;">{{ p.em_analise or 0 }}</span></td>
+            <td><span style="color:#721c24;">{{ p.nao_renovaram or 0 }}</span></td>
+            <td><span style="color:#004085;">{{ p.pendentes or 0 }}</span></td>
+            <td>
+                {% if total > 0 %}
+                <strong>{{ ((renovados/total)*100)|round(1) }}%</strong>
+                {% else %}—{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p style="color:#888;margin-top:20px;">Nenhum professor com rematrículas registradas.</p>
+{% endif %}
+
+
+<!-- ═══════════════════════════════
+     ABA: POR ALUNO
+     ═══════════════════════════════ -->
+{% elif aba == 'aluno' %}
+<form method="get" action="{{ url_for('listar_rematriculas') }}"
+    style="margin:20px 0;padding:15px;background:#f5f5f5;border-radius:5px;">
+    <input type="hidden" name="aba" value="aluno">
+    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+        <div style="flex:1;min-width:220px;">
+            <label style="display:block;font-size:13px;margin-bottom:3px;">Nome do aluno</label>
+            <input type="text" name="q" value="{{ q }}" placeholder="Digite o nome..."
+                style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+        </div>
+        <div>
+            <label style="display:block;font-size:13px;margin-bottom:3px;">Status</label>
+            <select name="status_filtro" style="padding:7px 10px;border-radius:4px;border:1px solid #ccc;">
+                <option value="">Todos</option>
+                <option value="pendente" {% if status_filtro=='pendente' %}selected{% endif %}>Pendente</option>
+                <option value="em_analise" {% if status_filtro=='em_analise' %}selected{% endif %}>Em análise</option>
+                <option value="renovou" {% if status_filtro=='renovou' %}selected{% endif %}>Renovou</option>
+                <option value="automatico" {% if status_filtro=='automatico' %}selected{% endif %}>Automático</option>
+                <option value="nao_vai_renovar" {% if status_filtro=='nao_vai_renovar' %}selected{% endif %}>Não vai
+                    renovar</option>
+            </select>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-end;">
+            <button type="submit"
+                style="background:#007bff;color:white;padding:8px 15px;border:none;border-radius:4px;cursor:pointer;">
+                Filtrar
+            </button>
+            {% if q or status_filtro %}
+            <a href="{{ url_for('listar_rematriculas', aba='aluno') }}" style="color:#666;">Limpar</a>
+            {% endif %}
+        </div>
+    </div>
+</form>
+
+{% if (q or status_filtro) and alunos_rem is defined %}
+{% if alunos_rem %}
+<table>
+    <thead>
+        <tr>
+            <th>Aluno</th>
+            <th>Turma atual</th>
+            <th>Próxima turma</th>
+            <th>Professor</th>
+            <th>Período</th>
+            <th>Status</th>
+            <th>Progresso</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for a in alunos_rem %}
+        <tr>
+            <td>
+                <a href="{{ url_for('detalhe_aluno', aluno_id=a.aluno_id) }}" style="font-weight:bold;color:#1a1d23;">{{
+                    a.aluno }}</a>
+            </td>
+            <td>
+                {% if a.turma_tipo %}
+                {{ a.turma_tipo }} {{ a.turma_numero }}
+                {% if a.horario %}<br><small style="color:#9099a8;">{{ a.horario }}</small>{% endif %}
+                {% else %}—{% endif %}
+            </td>
+            <td>
+                {% if a.proxima_tipo %}
+                <span class="badge badge-info">{{ a.proxima_tipo }} {{ a.proxima_numero }}</span>
+                {% else %}—{% endif %}
+            </td>
+            <td class="td-secondary">{{ a.professor_nome or '—' }}</td>
+            <td class="td-secondary">{{ a.periodo or '—' }}</td>
+            <td>
+                {% if a.status == 'renovou' %}
+                <span class="badge badge-success">Renovou</span>
+                {% elif a.status == 'automatico' %}
+                <span class="badge badge-info">Automático</span>
+                {% elif a.status == 'em_analise' %}
+                <span class="badge badge-warning">Em análise</span>
+                {% elif a.status == 'nao_vai_renovar' %}
+                <span class="badge badge-danger">Não renova</span>
+                {% else %}
+                <span class="badge badge-neutral">Pendente</span>
+                {% endif %}
+            </td>
+            <td style="min-width:120px;">
+                {% if a.pct_curso is defined and a.data_inicio and a.data_fim %}
+                {% set pct = a.pct_curso %}
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div style="flex:1;background:#f0f1f3;border-radius:99px;height:5px;overflow:hidden;">
+                        <div style="background:{% if pct >= 100 %}#1a7f4e{% elif pct >= 75 %}#c07a00{% else %}#3b5bdb{% endif %};
+                                            height:100%;width:{{ [pct,100]|min }}%;"></div>
+                    </div>
+                    <span style="font-size:11px;color:#6b7280;white-space:nowrap;">{{ pct }}%</span>
+                </div>
+                {% else %}
+                <span style="color:#9099a8;font-size:12px;">—</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p style="color:#888;">Nenhum resultado para "<strong>{{ q }}</strong>".</p>
+{% endif %}
+{% endif %}
+
+{% endif %}
+
+<style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+
+    th {
+        background: #2c3e50;
+        color: white;
+        padding: 11px 12px;
+        text-align: left;
+        font-size: 13px;
+    }
+
+    td {
+        padding: 9px 12px;
+        border-bottom: 1px solid #eee;
+        font-size: 13px;
+    }
+
+    tr:hover {
+        background: #f9f9f9;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .badge-renovou {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .badge-auto {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+
+    .badge-analise {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .badge-nao {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .badge-pendente {
+        background: #cce5ff;
+        color: #004085;
+    }
+</style>
+{% endblock %}

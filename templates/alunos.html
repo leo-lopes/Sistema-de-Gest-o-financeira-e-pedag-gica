@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Alunos{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <h1>Alunos</h1>
+    <p>Cadastro e histórico de alunos</p>
+</div>
+
+<!-- Abas -->
+<div style="display:flex; gap:4px; margin-bottom:20px; border-bottom:0.5px solid #e2e4e9; padding-bottom:0;">
+    <a href="{{ url_for('listar_alunos', aba='ativos', sort=sort, dir=dir) }}"
+       style="font-size:13px; padding:8px 16px; text-decoration:none; border-bottom:2px solid transparent; margin-bottom:-0.5px;
+              {% if aba == 'ativos' %}color:#3b5bdb; border-bottom-color:#3b5bdb; font-weight:500;{% else %}color:#6b7280;{% endif %}">
+        Ativos
+        <span style="margin-left:6px; font-size:11px; padding:1px 7px; border-radius:99px;
+                     {% if aba == 'ativos' %}background:#eef2ff; color:#3b5bdb;{% else %}background:#f0f1f3; color:#9099a8;{% endif %}">
+            {{ total_ativos }}
+        </span>
+    </a>
+    <a href="{{ url_for('listar_alunos', aba='historico', sort=sort, dir=dir) }}"
+       style="font-size:13px; padding:8px 16px; text-decoration:none; border-bottom:2px solid transparent; margin-bottom:-0.5px;
+              {% if aba == 'historico' %}color:#3b5bdb; border-bottom-color:#3b5bdb; font-weight:500;{% else %}color:#6b7280;{% endif %}">
+        Histórico
+        <span style="margin-left:6px; font-size:11px; padding:1px 7px; border-radius:99px;
+                     {% if aba == 'historico' %}background:#eef2ff; color:#3b5bdb;{% else %}background:#f0f1f3; color:#9099a8;{% endif %}">
+            {{ total_historico }}
+        </span>
+    </a>
+</div>
+
+{% if aba == 'ativos' %}
+
+<!-- Ações e filtros -->
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+    <div style="display:flex; gap:8px; align-items:center;">
+        <a href="{{ url_for('novo_cadastro') }}" class="btn btn-primary">+ Novo cadastro</a>
+        <a href="{{ url_for('listar_alunos', aba='ativos', sem_turma='1') }}"
+           class="btn {% if sem_turma %}btn-primary{% endif %}"
+           style="{% if sem_turma %}{% else %}color:#c07a00; border-color:#f0c040; background:#fffbeb;{% endif %}">
+            Sem turma vinculada
+            <span style="margin-left:5px; font-size:11px; padding:1px 7px; border-radius:99px;
+                         {% if sem_turma %}background:rgba(255,255,255,0.25);{% else %}background:#fef3c7; color:#c07a00;{% endif %}">
+                {{ total_sem_turma }}
+            </span>
+        </a>
+        {% if sem_turma %}
+        <a href="{{ url_for('listar_alunos', aba='ativos') }}" style="font-size:13px; color:#6b7280;">Limpar filtro</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="table-card">
+    <table>
+        <thead>
+            <tr>
+                <th>
+                    <a href="?aba=ativos&sort=id&dir={% if sort == 'id' and dir == 'asc' %}desc{% else %}asc{% endif %}"
+                       style="color:#9099a8; text-decoration:none;">ID</a>
+                </th>
+                <th>
+                    <a href="?aba=ativos&sort=aluno&dir={% if sort == 'aluno' and dir == 'asc' %}desc{% else %}asc{% endif %}"
+                       style="color:#9099a8; text-decoration:none;">Aluno</a>
+                </th>
+                <th>Responsável</th>
+                <th style="width:80px;"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in alunos %}
+            <tr>
+                <td class="td-secondary" style="width:50px;">{{ a.id }}</td>
+                <td class="td-strong">{{ a.aluno }}</td>
+                <td class="td-secondary">{{ a.responsavel or '—' }}</td>
+                <td>
+                    <a href="{{ url_for('detalhe_aluno', aluno_id=a.id) }}" class="btn btn-sm">Ver</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" style="text-align:center; color:#9099a8; padding:24px;">
+                    Nenhum aluno ativo encontrado.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% else %}
+
+<!-- ABA HISTÓRICO -->
+{% if alunos %}
+<div class="table-card">
+    <table>
+        <thead>
+            <tr>
+                <th>
+                    <a href="?aba=historico&sort=aluno&dir={% if sort == 'aluno' and dir == 'asc' %}desc{% else %}asc{% endif %}"
+                       style="color:#9099a8; text-decoration:none;">Aluno</a>
+                </th>
+                <th>Responsável</th>
+                <th>Cancelado em</th>
+                <th>Motivo</th>
+                <th>Ressarcimento</th>
+                <th style="width:80px;"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in alunos %}
+            <tr>
+                <td class="td-strong">{{ a.aluno }}</td>
+                <td class="td-secondary">{{ a.responsavel or '—' }}</td>
+                <td class="td-secondary">
+                    {{ a.data_cancelamento|data_br if a.data_cancelamento else '—' }}
+                </td>
+                <td class="td-secondary" style="font-size:12px; max-width:180px;">
+                    {{ a.motivo_cancelamento or '—' }}
+                </td>
+                <td>
+                    {% if a.houve_ressarcimento %}
+                        <span class="badge badge-warning">
+                            R$ {{ "%.2f"|format(a.valor_devolvido or 0) }}
+                        </span>
+                    {% elif a.data_cancelamento %}
+                        <span class="badge badge-neutral">Sem ressarcimento</span>
+                    {% else %}
+                        <span style="color:#9099a8; font-size:12px;">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{{ url_for('detalhe_aluno', aluno_id=a.id) }}" class="btn btn-sm">Ver</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div style="background:#fafbfc; border:0.5px solid #e2e4e9; border-radius:10px;
+            padding:32px; text-align:center;">
+    <p style="color:#9099a8; margin:0; font-size:13px;">
+        Nenhum aluno no histórico.
+    </p>
+</div>
+{% endif %}
+
+{% endif %}
+
+{% endblock %}

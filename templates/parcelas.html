@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Todas as parcelas - Financeiro Escola{% endblock %}
+
+{% block content %}
+<h2>Todas as parcelas</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Aluno</th>
+            <th>Responsável</th>
+            <th>Nº parcela</th>
+            <th>Valor</th>
+            <th>Vencimento</th>
+            <th>Situação</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for p in parcelas %}
+        <tr class="{% if p.cancelada %}parcela-cancelada{% endif %}">
+            <td>{{ p.id }}</td>
+            <td>{{ p.aluno }}</td>
+            <td>{{ p.responsavel }}</td>
+            <td>{{ p.numero_parcela }}</td>
+            <td>R$ {{ "%.2f"|format(p.valor_final or 0) }}</td>
+            <td>{{ p.data_vencimento|data_br }}</td>
+            <td>
+                {% if p.cancelada %}
+                    Cancelada
+                {% else %}
+                    Ativa
+                {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+{% if total_pages > 1 %}
+<div class="pagination">
+    {% if page > 1 %}
+        <a href="{{ url_for('listar_parcelas', page=page-1) }}">&laquo; Anterior</a>
+    {% endif %}
+
+    <span>Página {{ page }} de {{ total_pages }}</span>
+
+    {% if page < total_pages %}
+        <a href="{{ url_for('listar_parcelas', page=page+1) }}">Próxima &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

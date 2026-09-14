@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Contrato {{ contrato.numero_contrato }} - {{ contrato.aluno }}{% endblock %}
+
+{% block content %}
+<h2>Contrato {{ contrato.numero_contrato }}</h2>
+<p>
+    <strong>Aluno:</strong>
+    <a href="{{ url_for('detalhe_aluno', aluno_id=contrato.aluno_id) }}">
+        {{ contrato.aluno }}
+    </a>
+    <br>
+    <strong>Responsável:</strong> {{ contrato.responsavel }}<br>
+    <strong>Período:</strong> {{ contrato.data_inicio|data_br }} → {{ contrato.data_fim|data_br }}<br>
+    <strong>Valor total:</strong> R$ {{ "%.2f"|format(contrato.valor_total or 0) }}<br>
+    <strong>Parcelas previstas:</strong> {{ contrato.qtd_parcelas }}
+    {% if contrato.observacoes %}
+    <br><strong>Observações:</strong> {{ contrato.observacoes }}
+    {% endif %}
+</p>
+
+<p>
+    <strong>Status:</strong>
+    {% if contrato.ativo %}
+    <span style="color: green;">● Ativo</span>
+    {% else %}
+    <span style="color: red;">● Inativo</span>
+    {% endif %}
+</p>
+
+<p>
+    <a href="{{ url_for('detalhe_aluno', aluno_id=contrato.aluno_id) }}">← Voltar para o aluno</a>
+</p>
+
+<!-- BOTÃO DE CANCELAR CONTRATO - MOSTRA APENAS SE NÃO TEM NF EMITIDA -->
+{% if contrato.ativo and not tem_nf_emitida %}
+<div style="margin-top: 30px; padding: 15px; background: #ffe6e6; border-radius: 5px;">
+    <h4>❌ Cancelar Contrato</h4>
+    <p><small>
+            ⚠️ Esta ação cancelará todas as parcelas deste contrato.<br>
+            Apenas disponível porque <strong>nenhuma nota fiscal foi emitida</strong>.
+        </small></p>
+
+    <form method="post" action="{{ url_for('excluir_contrato', contrato_id=contrato.id) }}"
+        onsubmit="return confirm('Tem certeza que deseja cancelar este contrato?\n\nTodas as parcelas serão canceladas.\nEsta ação não poderá ser desfeita automaticamente.')">
+        <button type="submit"
+            style="background: #dc3545; color: white; padding: 10px 20px; border: none; border-radius: 4px; font-weight: bold;">
+            🗑️ Cancelar Contrato
+        </button>
+    </form>
+</div>
+{% elif tem_nf_emitida %}
+<div style="margin-top: 30px; padding: 15px; background: #fff3cd; border-radius: 5px;">
+    <h4>⚠️ Contrato com Notas Fiscais</h4>
+    <p><small>
+            Este contrato já possui notas fiscais emitidas.<br>
+            Para cancelar, primeiro cancele as notas fiscais ou contate o administrador.
+        </small></p>
+</div>
+{% endif %}
+
+<h3>Parcelas</h3>
+
+{% if parcelas %}
+<table>
+    <thead>
+        <tr>
+            <th>Nº</th>
+            <th>Valor</th>
+            <th>Vencimento</th>
+            <th>Status NF</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in parcelas %}
+        <tr>
+            <td><strong>{{ p.numero_parcela }}</strong></td>
+            <td>R$ {{ "%.2f"|format(p.valor_final) }}</td>
+            <td>{{ p.data_vencimento|data_br }}</td>
+            <td>
+                {% if p.nf_id and p.nf_status == 'emitida' %}
+                {% if p.numero_nf %}
+                <a href="{{ url_for('detalhe_nota', nota_id=p.nf_id) }}" style="color: green;">
+                    ✅ {{ p.numero_nf }}
+                </a>
+                {% else %}
+                <a href="{{ url_for('detalhe_nota', nota_id=p.nf_id) }}" style="color: green;">
+                    ✅ Nota emitida
+                </a>
+                {% endif %}
+                {% elif p.nf_id %}
+                <span style="color: orange;">🔄 {{ p.nf_status or 'Em processamento' }}</span>
+                {% else %}
+                <span style="color: #666;">⏳ Não emitida</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if not p.nf_id %}
+                <a href="{{ url_for('editar_parcela', parcela_id=p.id) }}" style="color: #007bff;"> Editar</a>
+                <span style="margin: 0 5px;">|</span>
+                <form method="post" action="{{ url_for('gerar_nf', parcela_id=p.id) }}" style="display: inline;">
+                    <button type="submit"
+                        style="background: #28a745; color: white; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer;">
+                         Emitir NF
+                    </button>
+                </form>
+                {% if not tem_nf_emitida %}
+                <span style="margin: 0 5px;">|</span>
+                <form method="post" action="{{ url_for('cancelar_parcela', parcela_id=p.id) }}" style="display: inline;"
+                    onsubmit="return confirm('Cancelar esta parcela?')">
+                    <button type="submit"
+                        style="background: #ffc107; color: #212529; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer;">
+                         Cancelar
+                    </button>
+                </form>
+                {% endif %}
+                {% else %}
+                <span style="color: #6c757d; font-style: italic;">NF já emitida</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- RESUMO DAS PARCELAS -->
+<div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+    <p>
+        <strong>Resumo:</strong>
+        {% set total_parcelas = parcelas|length %}
+        {% set parcelas_com_nf = parcelas|selectattr('nf_id')|list|length %}
+        {% set parcelas_sem_nf = total_parcelas - parcelas_com_nf %}
+
+        {{ total_parcelas }} parcelas total |
+        <span style="color: green;">{{ parcelas_com_nf }} com NF</span> |
+        <span style="color: #666;">{{ parcelas_sem_nf }} sem NF</span>
+    </p>
+</div>
+
+{% else %}
+<div style="padding: 20px; text-align: center; background: #f8f9fa; border-radius: 5px;">
+    <p style="color: #6c757d;">Nenhuma parcela cadastrada para este contrato.</p>
+</div>
+{% endif %}
+
+<style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+    th {
+        background: #343a40;
+        color: white;
+        padding: 12px;
+        text-align: left;
+    }
+
+    td {
+        padding: 12px;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    button {
+        cursor: pointer;
+        transition: opacity 0.2s;
+    }
+
+    button:hover {
+        opacity: 0.9;
+    }
+</style>
+{% endblock %}

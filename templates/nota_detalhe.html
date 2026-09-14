@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}NF {{ nota.numero_nf }}{% endblock %}
+
+{% block content %}
+<h2>Nota Fiscal: {{ nota.numero_nf }}</h2>
+
+<table>
+    <tbody>
+        <tr>
+            <th>Data de Emissão</th>
+            <td>{{ nota.data_emissao|data_br or '-' }}</td>
+        </tr>
+        <tr>
+            <th>Valor dos Serviços</th>
+            <td>R$ {{ "%.2f"|format(valor_servicos) }}</td>
+        </tr>
+        <tr>
+            <th>Discriminação</th>
+            <td>{{ discriminacao }}</td>
+        </tr>
+        <tr>
+            <th>CPF/CNPJ Tomador</th>
+            <td>{{ nota.cpf_cnpj_tomador or '-' }}</td>
+        </tr>
+        <tr>
+            <th>Nome Tomador</th>
+            <td>{{ nota.responsavel }}</td>
+        </tr>
+        <tr>
+            <th>Endereço Tomador</th>
+            <td>
+                {{ nota.rua_tomador or '' }}
+                {% if nota.numero_endereco_tomador %}, {{ nota.numero_endereco_tomador }}{% endif %}<br>
+                {% if nota.complemento_endereco_tomador %}
+                    {{ nota.complemento_endereco_tomador }}<br>
+                {% endif %}
+                {{ nota.bairro_tomador or '' }}{% if nota.bairro_tomador %} - {% endif %}
+                {{ nota.cidade_tomador or '' }}/{{ nota.uf_tomador or '' }}<br>
+                CEP {{ nota.cep_tomador or '' }}
+            </td>
+        </tr>
+        <tr>
+            <th>Email Tomador</th>
+            <td>{{ nota.email_tomador or '-' }}</td>
+        </tr>
+    </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Professores{% endblock %}
+{% block content %}
+<h2>👨‍🏫 Professores</h2>
+
+<!-- Botão novo -->
+<button onclick="document.getElementById('modalNovo').style.display='flex'"
+    style="background:#2c3e50;color:white;padding:9px 18px;border:none;border-radius:5px;cursor:pointer;margin-bottom:20px;">
+    + Novo Professor
+</button>
+
+{% if professores %}
+<table>
+    <thead>
+        <tr>
+            <th>Nome</th>
+            <th>Contato</th>
+            <th>Turmas ativas</th>
+            <th>Status</th>
+            <th style="width:160px;">Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in professores %}
+        <tr>
+            <td><strong>{{ p.nome }}</strong></td>
+            <td>{{ p.contato or '—' }}</td>
+            <td>{{ p.total_turmas }}</td>
+            <td>
+                {% if p.ativo %}
+                    <span class="badge badge-ativo">Ativo</span>
+                {% else %}
+                    <span class="badge badge-inativo">Inativo</span>
+                {% endif %}
+            </td>
+            <td>
+                <button onclick="abrirEditar({{ p.id }}, '{{ p.nome|e }}', '{{ p.contato or '' }}')"
+                    style="background:#007bff;color:white;padding:4px 10px;border:none;border-radius:3px;cursor:pointer;font-size:12px;">
+                    Editar
+                </button>
+                <form method="post" action="{{ url_for('toggle_professor', prof_id=p.id) }}" style="display:inline;">
+                    <button type="submit"
+                        style="background:{% if p.ativo %}#ff9800{% else %}#28a745{% endif %};color:white;padding:4px 10px;border:none;border-radius:3px;cursor:pointer;font-size:12px;">
+                        {% if p.ativo %}Desativar{% else %}Ativar{% endif %}
+                    </button>
+                </form>
+                {% if p.total_turmas == 0 %}
+                <form method="post" action="{{ url_for('excluir_professor', prof_id=p.id) }}" style="display:inline;"
+                      onsubmit="return confirm('Excluir {{ p.nome }}?')">
+                    <button type="submit"
+                        style="background:#dc3545;color:white;padding:4px 10px;border:none;border-radius:3px;cursor:pointer;font-size:12px;">
+                        Excluir
+                    </button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p style="color:#888;margin-top:20px;">Nenhum professor cadastrado ainda.</p>
+{% endif %}
+
+<!-- Modal novo professor -->
+<div id="modalNovo" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+     background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:8px;padding:28px;width:400px;max-width:95%;">
+        <h3 style="margin-top:0;">Novo Professor</h3>
+        <form method="post" action="{{ url_for('novo_professor') }}">
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Nome *</label>
+                <input type="text" name="nome" required autofocus
+                    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+            </div>
+            <div style="margin-bottom:20px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Contato</label>
+                <input type="text" name="contato" placeholder="Telefone ou e-mail (opcional)"
+                    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button type="button" onclick="document.getElementById('modalNovo').style.display='none'"
+                    style="padding:8px 18px;background:#6c757d;color:white;border:none;border-radius:4px;cursor:pointer;">
+                    Cancelar
+                </button>
+                <button type="submit"
+                    style="padding:8px 18px;background:#28a745;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">
+                    Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal editar professor -->
+<div id="modalEditar" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+     background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:8px;padding:28px;width:400px;max-width:95%;">
+        <h3 style="margin-top:0;">Editar Professor</h3>
+        <form method="post" id="formEditar">
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Nome *</label>
+                <input type="text" name="nome" id="editNome" required
+                    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+            </div>
+            <div style="margin-bottom:20px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Contato</label>
+                <input type="text" name="contato" id="editContato"
+                    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button type="button" onclick="document.getElementById('modalEditar').style.display='none'"
+                    style="padding:8px 18px;background:#6c757d;color:white;border:none;border-radius:4px;cursor:pointer;">
+                    Cancelar
+                </button>
+                <button type="submit"
+                    style="padding:8px 18px;background:#007bff;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">
+                    Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+table{width:100%;border-collapse:collapse;margin-top:10px;}
+th{background:#2c3e50;color:white;padding:11px 12px;text-align:left;font-size:13px;}
+td{padding:9px 12px;border-bottom:1px solid #eee;font-size:13px;}
+tr:hover{background:#f9f9f9;}
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:bold;}
+.badge-ativo{background:#d4edda;color:#155724;}
+.badge-inativo{background:#f8d7da;color:#721c24;}
+</style>
+
+<script>
+function abrirEditar(id, nome, contato) {
+    document.getElementById('editNome').value = nome;
+    document.getElementById('editContato').value = contato;
+    document.getElementById('formEditar').action = '/professores/' + id + '/editar';
+    document.getElementById('modalEditar').style.display = 'flex';
+}
+['modalNovo','modalEditar'].forEach(function(id){
+    document.getElementById(id).addEventListener('click', function(e){
+        if(e.target===this) this.style.display='none';
+    });
+});
+</script>
+{% endblock %}

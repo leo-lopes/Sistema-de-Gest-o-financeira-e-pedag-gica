@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% block title %}Novo Cadastro{% endblock %}
+{% block content %}
+
+<div style="max-width:900px;">
+    <div class="page-header">
+        <h1>Novo cadastro</h1>
+        <p>Preencha os dados do responsável, aluno e contrato.</p>
+    </div>
+
+    {% if erro %}
+    <div
+        style="background:#ffe0e0;border:0.5px solid #fcc;border-radius:8px;padding:12px 16px;margin-bottom:16px;color:#c0392b;font-size:13px;">
+        {{ erro }}
+    </div>
+    {% endif %}
+
+    <form method="post">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+            <!-- RESPONSÁVEL -->
+            <div style="background:#fff;border:0.5px solid #e2e4e9;border-radius:10px;padding:20px;">
+                <p
+                    style="font-size:11px;color:#9099a8;text-transform:uppercase;letter-spacing:0.5px;font-weight:500;margin:0 0 16px;">
+                    Responsável</p>
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <div class="field"><span>Nome completo *</span><input type="text" name="r_nome" required></div>
+                    <div class="field"><span>Telefone *</span><input type="tel" name="r_telefone" required></div>
+                    <div class="field"><span>Email</span><input type="email" name="r_email"></div>
+                    <div class="field"><span>CPF / CNPJ</span><input type="text" name="r_cpf_cnpj"
+                            placeholder="Somente números"></div>
+                </div>
+            </div>
+
+            <!-- ENDEREÇO -->
+            <div style="background:#fff;border:0.5px solid #e2e4e9;border-radius:10px;padding:20px;">
+                <p
+                    style="font-size:11px;color:#9099a8;text-transform:uppercase;letter-spacing:0.5px;font-weight:500;margin:0 0 16px;">
+                    Endereço</p>
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <div class="field"><span>CEP</span><input type="text" name="r_endereco_cep" placeholder="00000-000">
+                    </div>
+                    <div class="field"><span>Rua</span><input type="text" name="r_endereco_rua"></div>
+                    <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;">
+                        <div class="field"><span>Número</span><input type="text" name="r_endereco_numero"></div>
+                        <div class="field"><span>Complemento</span><input type="text" name="r_endereco_complemento">
+                        </div>
+                    </div>
+                    <div class="field"><span>Bairro</span><input type="text" name="r_endereco_bairro"></div>
+                    <div style="display:grid;grid-template-columns:3fr 1fr;gap:10px;">
+                        <div class="field"><span>Cidade</span><input type="text" name="r_endereco_cidade"></div>
+                        <div class="field"><span>UF</span><input type="text" name="r_endereco_uf" maxlength="2"
+                                placeholder="MG"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ALUNO -->
+            <div style="background:#fff;border:0.5px solid #e2e4e9;border-radius:10px;padding:20px;">
+                <p
+                    style="font-size:11px;color:#9099a8;text-transform:uppercase;letter-spacing:0.5px;font-weight:500;margin:0 0 16px;">
+                    Aluno</p>
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <div class="field"><span>Nome do aluno *</span><input type="text" name="a_nome" required></div>
+                    <div class="field"><span>Data de nascimento</span><input type="date" name="a_data_nascimento"></div>
+                </div>
+            </div>
+
+            <!-- CONTRATO -->
+            <div style="background:#fff;border:0.5px solid #e2e4e9;border-radius:10px;padding:20px;">
+                <p
+                    style="font-size:11px;color:#9099a8;text-transform:uppercase;letter-spacing:0.5px;font-weight:500;margin:0 0 16px;">
+                    Contrato</p>
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <div class="field">
+                        <span>Número do contrato *</span>
+                        <input type="text" name="c_numero_contrato" required placeholder="Ex: 51, 51-2">
+                        <small style="color:#9099a8;font-size:11px;margin-top:3px;">Número do contrato
+                            físico/documento</small>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <div class="field"><span>Data início *</span><input type="date" name="c_data_inicio" required
+                                value="{{ hoje }}"></div>
+                        <div class="field"><span>Data fim *</span><input type="date" name="c_data_fim" required></div>
+                    </div>
+                    <div class="field">
+                        <span>Valor total (R$) *</span>
+                        <input type="number" step="0.01" name="c_valor_total" required placeholder="0.00">
+                    </div>
+                    <div class="field">
+                        <span>Quantidade de parcelas *</span>
+                        <input type="number" name="c_qtd_parcelas" required min="1" value="12">
+                    </div>
+                </div>
+            </div>
+
+            <!-- TURMA E REMATRÍCULA -->
+            <div style="background:#fff;border:0.5px solid #e2e4e9;border-radius:10px;padding:20px;grid-column:1/-1;">
+                <p
+                    style="font-size:11px;color:#9099a8;text-transform:uppercase;letter-spacing:0.5px;font-weight:500;margin:0 0 16px;">
+                    Turma e rematrícula</p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+                    <div style="display:flex;flex-direction:column;gap:12px;">
+                        <div class="field">
+                            <span>Turma</span>
+                            <select name="turma_id"
+                                style="padding:7px 10px;border-radius:6px;border:0.5px solid #e2e4e9;font-size:13px;background:#f4f5f7;">
+                                <option value="">— Nenhuma dessas (definir depois) —</option>
+                                {% for t in turmas_disponiveis %}
+                                <option value="{{ t.id }}">
+                                    {{ t.tipo }} {{ t.numero }}
+                                    {% if t.dia_semana %} · {{ t.dia_semana }}{% endif %}
+                                    {% if t.horario %} · {{ t.horario }}{% endif %}
+                                    {% if t.professor %} · Prof. {{ t.professor }}{% endif %}
+                                    {% if t.periodo %} · {{ t.periodo }}{% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="field">
+                            <span>Período</span>
+                            <input type="text" name="periodo_rem" placeholder="ex: 2026-1"
+                                style="padding:7px 10px;border-radius:6px;border:0.5px solid #e2e4e9;font-size:13px;background:#f4f5f7;">
+                        </div>
+                    </div>
+
+                    <div style="display:flex;flex-direction:column;justify-content:center;">
+                        <div
+                            style="background:#f4f5f7;border-radius:8px;padding:16px;display:flex;align-items:flex-start;gap:10px;">
+                            <input type="checkbox" name="renovacao_automatica" value="1" id="chkAuto"
+                                style="margin-top:2px;accent-color:#3b5bdb;width:15px;height:15px;flex-shrink:0;">
+                            <div>
+                                <label for="chkAuto"
+                                    style="font-size:13px;font-weight:500;color:#060505;cursor:pointer;display:block;margin-bottom:4px;">
+                                    Renovação automática
+                                </label>
+                                <p style="font-size:12px;color:#6b7280;margin:0;line-height:1.5;">
+                                    Marque se o aluno assinou dois módulos e a próxima turma já está garantida. O
+                                    sistema avisará 2 semanas antes do fim da turma atual para colocá-lo na próxima.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Ações -->
+        <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end;">
+            <a href="{{ url_for('listar_alunos') }}" class="btn">Cancelar</a>
+            <button type="submit" class="btn btn-primary">Cadastrar</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // CEP
+    const cepInput = document.querySelector('input[name="r_endereco_cep"]');
+    if (cepInput) {
+        cepInput.addEventListener('input', function (e) {
+            let v = e.target.value.replace(/\D/g, '');
+            if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5, 8);
+            e.target.value = v;
+        });
+        cepInput.addEventListener('blur', function (e) {
+            const cep = e.target.value.replace(/\D/g, '');
+            if (cep.length === 8) {
+                e.target.style.background = '#f4f5f7';
+                fetch(`/api/cep/${cep}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (!data.erro) {
+                            document.querySelector('input[name="r_endereco_rua"]').value = data.logradouro || '';
+                            document.querySelector('input[name="r_endereco_bairro"]').value = data.bairro || '';
+                            document.querySelector('input[name="r_endereco_cidade"]').value = data.localidade || '';
+                            document.querySelector('input[name="r_endereco_uf"]').value = data.uf || '';
+                            document.querySelector('input[name="r_endereco_complemento"]').focus();
+                        }
+                        e.target.style.background = '';
+                    })
+                    .catch(() => { e.target.style.background = ''; });
+            }
+        });
+    }
+
+    // Telefone
+    const telInput = document.querySelector('input[name="r_telefone"]');
+    if (telInput) {
+        telInput.addEventListener('input', function (e) {
+            let v = e.target.value.replace(/\D/g, '');
+            if (v.length > 10) v = v.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
+            else if (v.length > 6) v = v.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3');
+            else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
+            else if (v.length > 0) v = v.replace(/^(\d{0,2})/, '($1');
+            e.target.value = v;
+        });
+    }
+
+    // CPF/CNPJ
+    const cpfInput = document.querySelector('input[name="r_cpf_cnpj"]');
+    if (cpfInput) {
+        cpfInput.addEventListener('input', function (e) {
+            let v = e.target.value.replace(/\D/g, '');
+            if (v.length <= 11) {
+                v = v.replace(/(\d{3})(\d)/, '$1.$2')
+                    .replace(/(\d{3})(\d)/, '$1.$2')
+                    .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            } else {
+                v = v.slice(0, 14)
+                    .replace(/^(\d{2})(\d)/, '$1.$2')
+                    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+                    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+                    .replace(/(\d{4})(\d)/, '$1-$2');
+            }
+            e.target.value = v;
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block title %}CTRLPlay{% endblock %}
+{% block content %}
+
+<style>
+    .modulo-card {
+        background: var(--bg-surface);
+        border: 0.5px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+        cursor: pointer;
+    }
+
+    .modulo-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .modulo-card.azul:hover {
+        border-color: var(--accent);
+        box-shadow: 0 4px 16px rgba(59, 91, 219, 0.1);
+    }
+
+    .modulo-card.verde:hover {
+        border-color: var(--success);
+        box-shadow: 0 4px 16px rgba(26, 127, 78, 0.1);
+    }
+
+    .modulo-card.ouro:hover {
+        border-color: var(--warning);
+        box-shadow: 0 4px 16px rgba(192, 122, 0, 0.1);
+    }
+
+    .card-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+        flex-shrink: 0;
+    }
+
+    .card-icon.azul {
+        background: var(--accent-bg);
+    }
+
+    .card-icon.verde {
+        background: var(--success-bg);
+    }
+
+    .card-icon.ouro {
+        background: var(--warning-bg);
+    }
+
+    .card-stat-label {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin: 0 0 2px;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    .card-divider {
+        padding-top: 10px;
+        border-top: 0.5px solid var(--border);
+    }
+
+    .aviso-icon {
+        flex-shrink: 0;
+        width: 28px;
+        height: 28px;
+        border-radius: 7px;
+        margin-top: 1px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .aviso-icon.urgente {
+        background: var(--danger-bg);
+    }
+
+    .aviso-icon.atencao {
+        background: var(--warning-bg);
+    }
+
+    .aviso-icon.info {
+        background: var(--info-bg);
+    }
+</style>
+
+<div style="max-width:1100px;">
+
+    <div class="page-header">
+        <h1>Olá User,</h1>
+        <p>Selecione um módulo ou use a navegação no topo.</p>
+    </div>
+
+    <div style="display:grid; grid-template-columns:2fr 1fr; gap:16px; align-items:start;">
+
+        <!-- COLUNA ESQUERDA -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
+
+                <!-- Notas fiscais -->
+                <a href="{{ url_for('notas_a_emitir') }}" style="text-decoration:none;">
+                    <div class="modulo-card azul">
+                        <div class="card-icon azul">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)"
+                                stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                <polyline points="14 2 14 8 20 8" />
+                                <line x1="16" y1="13" x2="8" y2="13" />
+                                <line x1="16" y1="17" x2="8" y2="17" />
+                            </svg>
+                        </div>
+                        <p style="font-size:14px;font-weight:500;color:var(--text-primary);margin:0 0 4px;">Notas
+                            fiscais</p>
+                        <p style="font-size:12px;color:var(--text-secondary);margin:0 0 12px;line-height:1.4;">Emita
+                            notas por período e gerencie parcelas.</p>
+                        {% if stats %}
+                        <div class="card-divider">
+                            <p class="card-stat-label">A emitir</p>
+                            <p style="font-size:18px;font-weight:500;color:var(--warning);margin:0;">{{
+                                stats.notas_a_emitir }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </a>
+
+                <!-- Financeiro -->
+                <a href="{{ url_for('pagamentos') }}" style="text-decoration:none;">
+                    <div class="modulo-card verde">
+                        <div class="card-icon verde">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)"
+                                stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="1" x2="12" y2="23" />
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                            </svg>
+                        </div>
+                        <p style="font-size:14px;font-weight:500;color:var(--text-primary);margin:0 0 4px;">Financeiro
+                        </p>
+                        <p style="font-size:12px;color:var(--text-secondary);margin:0 0 12px;line-height:1.4;">
+                            Pagamentos, inadimplência e fluxo de caixa.</p>
+                        {% if stats %}
+                        <div class="card-divider" style="display:flex;gap:14px;">
+                            <div>
+                                <p class="card-stat-label">Pagas</p>
+                                <p style="font-size:18px;font-weight:500;color:var(--success);margin:0;">{{
+                                    stats.parcelas_pagas_mes }}</p>
+                            </div>
+                            <div>
+                                <p class="card-stat-label">Atrasadas</p>
+                                <p style="font-size:18px;font-weight:500;color:var(--danger);margin:0;">{{
+                                    stats.parcelas_atrasadas }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </a>
+
+                <!-- Rematrículas -->
+                <a href="{{ url_for('listar_rematriculas') }}" style="text-decoration:none;">
+                    <div class="modulo-card ouro">
+                        <div class="card-icon ouro">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--warning)"
+                                stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="23 4 23 10 17 10" />
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                            </svg>
+                        </div>
+                        <p style="font-size:14px;font-weight:500;color:var(--text-primary);margin:0 0 4px;">Rematrículas
+                        </p>
+                        <p style="font-size:12px;color:var(--text-secondary);margin:0 0 12px;line-height:1.4;">
+                            Renovações por turma, professor e retenção.</p>
+                        {% if stats %}
+                        <div class="card-divider">
+                            <p class="card-stat-label">Alunos ativos</p>
+                            <p style="font-size:18px;font-weight:500;color:var(--text-primary);margin:0;">{{
+                                stats.total_alunos }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </a>
+
+            </div>
+
+            <!-- Acesso rápido -->
+            <div
+                style="background:var(--bg-surface);border:0.5px solid var(--border);border-radius:10px;padding:14px 16px;">
+                <p
+                    style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin:0 0 10px;font-weight:500;">
+                    Acesso rápido</p>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <a href="{{ url_for('listar_alunos') }}" class="btn">Alunos</a>
+                    <a href="{{ url_for('novo_cadastro') }}" class="btn">Novo cadastro</a>
+                    <a href="{{ url_for('notas_a_emitir') }}" class="btn">Notas a emitir</a>
+                    <a href="{{ url_for('pagamentos', aba='mes') }}" class="btn">Parcelas do mês</a>
+                    <a href="{{ url_for('listar_turmas') }}" class="btn">Turmas</a>
+                    <a href="{{ url_for('pagina_backup') }}" class="btn">Backup</a>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- COLUNA DIREITA: quadro de avisos -->
+        <div style="background:var(--bg-surface);border:0.5px solid var(--border);border-radius:12px;overflow:hidden;">
+            <div
+                style="padding:14px 16px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+                <p style="font-size:13px;font-weight:500;color:var(--text-primary);margin:0;">Quadro de avisos</p>
+                {% if avisos %}
+                <span class="badge badge-danger">{{ avisos|length }}</span>
+                {% else %}
+                <span class="badge badge-success">Tudo em dia</span>
+                {% endif %}
+            </div>
+
+            {% if avisos %}
+            {% for a in avisos %}
+            <div style="padding:12px 16px;{% if not loop.last %}border-bottom:0.5px solid var(--border);{% endif %}">
+                <div style="display:flex;gap:10px;align-items:flex-start;">
+                    <div class="aviso-icon {{ a.tipo }}">
+                        {% if a.tipo == 'urgente' %}
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--danger)"
+                            stroke-width="2" stroke-linecap="round">
+                            <path
+                                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                            <line x1="12" y1="9" x2="12" y2="13" />
+                            <line x1="12" y1="17" x2="12.01" y2="17" />
+                        </svg>
+                        {% elif a.tipo == 'atencao' %}
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--warning)"
+                            stroke-width="2" stroke-linecap="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                        {% else %}
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)"
+                            stroke-width="2" stroke-linecap="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="16" x2="12" y2="12" />
+                            <line x1="12" y1="8" x2="12.01" y2="8" />
+                        </svg>
+                        {% endif %}
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                        <p
+                            style="font-size:13px;font-weight:500;color:var(--text-primary);margin:0 0 2px;line-height:1.3;">
+                            {{ a.titulo }}</p>
+                        <p style="font-size:12px;color:var(--text-secondary);margin:0 0 2px;line-height:1.4;">{{
+                            a.detalhe }}</p>
+                        {% if a.subtexto %}
+                        <p style="font-size:11px;color:var(--text-muted);margin:0 0 6px;">{{ a.subtexto }}</p>
+                        {% endif %}
+                        <a href="{{ a.link }}" style="font-size:12px;color:var(--accent-text);text-decoration:none;">{{
+                            a.link_txt }} →</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div style="padding:28px 16px;text-align:center;">
+                <p style="font-size:13px;color:var(--text-muted);margin:0;">Nenhum aviso pendente.</p>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

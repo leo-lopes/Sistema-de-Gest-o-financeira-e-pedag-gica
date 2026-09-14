@@ -1,0 +1,390 @@
+{% extends "base.html" %}
+{% block title %}{{ turma.tipo }} {{ turma.numero }} — Rematrículas{% endblock %}
+{% block content %}
+
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+    <a href="{{ url_for('listar_turmas') }}" style="color:#666;font-size:13px;">← Turmas</a>
+    <span style="color:#ccc;">|</span>
+    <a href="{{ url_for('listar_rematriculas') }}" style="color:#666;font-size:13px;">Rematrículas</a>
+</div>
+
+<div style="background:white;border-radius:8px;padding:20px;border:1px solid #e0e0e0;margin-bottom:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+        <div>
+            <h2 style="margin:0 0 6px;">{{ turma.tipo }} {{ turma.numero }}</h2>
+            <div style="color:#666;font-size:13px;">
+                {% if turma.dia_semana %}{{ turma.dia_semana }}{% endif %}
+                {% if turma.horario %} · {{ turma.horario }}{% endif %}
+                {% if turma.professor %} · Prof. {{ turma.professor }}{% endif %}
+                {% if turma.periodo %} · {{ turma.periodo }}{% endif %}
+            </div>
+            {% if turma.data_inicio or turma.data_fim %}
+            <div style="color:#888;font-size:12px;margin-top:4px;">
+                {% if turma.data_inicio %}{{ turma.data_inicio|data_br }}{% endif %}
+                {% if turma.data_fim %} → {{ turma.data_fim|data_br }}{% endif %}
+            </div>
+            {% endif %}
+        </div>
+        <!-- Resumo rápido -->
+        {% set total = alunos|length %}
+        {% set renovados = alunos|selectattr('status','in',['renovou','automatico'])|list|length %}
+        {% set nao_renovaram = alunos|selectattr('status','equalto','nao_vai_renovar')|list|length %}
+        {% set em_analise = alunos|selectattr('status','equalto','em_analise')|list|length %}
+        {% set pendentes = alunos|selectattr('status','equalto','pendente')|list|length %}
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <div style="text-align:center;background:#e8f5e9;padding:10px 16px;border-radius:6px;">
+                <div style="font-size:22px;font-weight:bold;color:#2e7d32;">{{ renovados }}</div>
+                <div style="font-size:11px;color:#555;">Renovaram</div>
+            </div>
+            <div style="text-align:center;background:#fff3e0;padding:10px 16px;border-radius:6px;">
+                <div style="font-size:22px;font-weight:bold;color:#e65100;">{{ pendentes }}</div>
+                <div style="font-size:11px;color:#555;">Pendentes</div>
+            </div>
+            <div style="text-align:center;background:#fff8e1;padding:10px 16px;border-radius:6px;">
+                <div style="font-size:22px;font-weight:bold;color:#f57f17;">{{ em_analise }}</div>
+                <div style="font-size:11px;color:#555;">Em análise</div>
+            </div>
+            <div style="text-align:center;background:#fce4ec;padding:10px 16px;border-radius:6px;">
+                <div style="font-size:22px;font-weight:bold;color:#880e4f;">{{ nao_renovaram }}</div>
+                <div style="font-size:11px;color:#555;">Não renovaram</div>
+            </div>
+            <div style="text-align:center;background:#f5f5f5;padding:10px 16px;border-radius:6px;">
+                <div style="font-size:22px;font-weight:bold;">{{ total }}</div>
+                <div style="font-size:11px;color:#555;">Total</div>
+            </div>
+        </div>
+    </div>
+    {% if total > 0 %}
+    <div style="margin-top:12px;">
+        <div style="background:#e0e0e0;border-radius:99px;height:8px;overflow:hidden;">
+            <div style="background:#4caf50;height:100%;width:{{ ((renovados/total)*100)|round|int }}%;transition:width 0.3s;"></div>
+        </div>
+        <div style="font-size:12px;color:#666;margin-top:4px;">
+            Taxa de renovação: <strong>{{ ((renovados/total)*100)|round(1) }}%</strong>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Botão adicionar aluno -->
+<button onclick="document.getElementById('modalNovo').style.display='flex'"
+    style="background:#2c3e50;color:white;padding:9px 18px;border:none;border-radius:5px;cursor:pointer;margin-bottom:16px;">
+    + Adicionar Aluno
+</button>
+
+{% if alunos %}
+<table>
+    <thead>
+        <tr>
+            <th>Aluno</th>
+            <th>Tipo</th>
+            <th>Desconto anterior</th>
+            <th>Próxima turma</th>
+            <th>Status</th>
+            <th>Motivo</th>
+            <th style="width:120px;">Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for a in alunos %}
+        <tr>
+            <td><strong>{{ a.aluno }}</strong></td>
+            <td>{{ 'Automático' if a.tipo_contrato == 'automatico' else 'Renovar' }}</td>
+            <td>{{ (a.desconto_anterior * 100)|round|int }}%</td>
+            <td>
+                {% if a.proxima_tipo %}
+                    <span style="background:#e3f2fd;color:#0d47a1;padding:2px 8px;border-radius:10px;font-size:12px;">
+                        {{ a.proxima_tipo }} {{ a.proxima_numero }}
+                        {% if a.proxima_horario %}· {{ a.proxima_horario }}{% endif %}
+                    </span>
+                {% else %}
+                    <span style="color:#aaa;font-size:12px;">—</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if a.status == 'renovou' %}
+                    <span class="badge badge-renovou">✅ Renovou</span>
+                {% elif a.status == 'automatico' %}
+                    <span class="badge badge-auto">🔄 Automático</span>
+                {% elif a.status == 'em_analise' %}
+                    <span class="badge badge-analise">🟡 Em análise</span>
+                {% elif a.status == 'nao_vai_renovar' %}
+                    <span class="badge badge-nao">❌ Não renova</span>
+                {% else %}
+                    <span class="badge badge-pendente">🔵 Pendente</span>
+                {% endif %}
+            </td>
+            <td style="font-size:12px;color:#666;max-width:200px;">{{ a.motivo_nao_renovou or '—' }}</td>
+            <td>
+                <button onclick="abrirEditar({{ a.id }}, '{{ a.status }}',
+                    '{{ a.proxima_id or '' }}', '{{ a.desconto_anterior }}',
+                    '{{ a.motivo_nao_renovou or '' }}', '{{ a.observacoes or '' }}')"
+                    style="background:#007bff;color:white;padding:4px 9px;border:none;border-radius:3px;cursor:pointer;font-size:12px;">
+                    Editar
+                </button>
+                <form method="post" action="{{ url_for('excluir_rematricula', rem_id=a.id) }}"
+                      style="display:inline;"
+                      onsubmit="return confirm('Remover {{ a.aluno }} desta turma?')">
+                    <input type="hidden" name="origem_turma" value="{{ turma.id }}">
+                    <button type="submit"
+                        style="background:#dc3545;color:white;padding:4px 9px;border:none;border-radius:3px;cursor:pointer;font-size:12px;">
+                        Remover
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p style="color:#888;margin-top:16px;">Nenhum aluno nesta turma ainda. Clique em "+ Adicionar Aluno" para começar.</p>
+{% endif %}
+
+
+<!-- Modal: adicionar aluno -->
+<div id="modalNovo" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+     background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:8px;padding:28px;width:480px;max-width:95%;max-height:90vh;overflow-y:auto;">
+        <h3 style="margin-top:0;">Adicionar Aluno — {{ turma.tipo }} {{ turma.numero }}</h3>
+        <form method="post" action="{{ url_for('nova_rematricula') }}">
+            <input type="hidden" name="turma_id" value="{{ turma.id }}">
+            <input type="hidden" name="origem" value="{{ turma.id }}">
+
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Aluno *</label>
+                <input type="text" id="buscaAluno" placeholder="Digite o nome para buscar..."
+                    autocomplete="off"
+                    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+                <div id="sugestoesAluno" style="border:1px solid #ccc;border-top:none;border-radius:0 0 4px 4px;display:none;max-height:180px;overflow-y:auto;background:white;"></div>
+                <input type="hidden" name="aluno_id" id="alunoIdHidden" required>
+                <div id="alunoSelecionado" style="margin-top:6px;font-size:13px;color:#28a745;display:none;"></div>
+            </div>
+
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Próxima turma</label>
+                <select name="proxima_turma_id"
+                    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">
+                    <option value="">— Nenhuma (rematrícula necessária) —</option>
+                    {% for t in todas_turmas %}
+                    <option value="{{ t.id }}">
+                        {{ t.tipo }} {{ t.numero }}
+                        {% if t.dia_semana %} · {{ t.dia_semana }}{% endif %}
+                        {% if t.horario %} · {{ t.horario }}{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                <small style="color:#888;">Se preenchida, o status será Automático.</small>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+                <div>
+                    <label style="display:block;font-weight:bold;margin-bottom:4px;">Tipo de contrato</label>
+                    <select name="tipo_contrato" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">
+                        <option value="renovar">Renovar</option>
+                        <option value="automatico">Automático</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display:block;font-weight:bold;margin-bottom:4px;">Desconto anterior (%)</label>
+                    <input type="number" name="desconto_anterior" value="0" min="0" max="100" step="1"
+                        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+                </div>
+            </div>
+
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Status</label>
+                <select name="status" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">
+                    <option value="pendente">🔵 Pendente</option>
+                    <option value="renovou">✅ Renovou</option>
+                    <option value="automatico">🔄 Automático</option>
+                    <option value="em_analise">🟡 Em análise</option>
+                    <option value="nao_vai_renovar">❌ Não vai renovar</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Motivo (se não vai renovar)</label>
+                <textarea name="motivo_nao_renovou" rows="2"
+                    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;resize:vertical;"></textarea>
+            </div>
+
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Período</label>
+                <input type="text" name="periodo" value="{{ turma.periodo or '' }}"
+                    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+            </div>
+
+            <div style="margin-bottom:20px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Observações</label>
+                <textarea name="observacoes" rows="2"
+                    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;resize:vertical;"></textarea>
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button type="button" onclick="document.getElementById('modalNovo').style.display='none'"
+                    style="padding:8px 18px;background:#6c757d;color:white;border:none;border-radius:4px;cursor:pointer;">
+                    Cancelar
+                </button>
+                <button type="submit" id="btnSalvar" disabled
+                    style="padding:8px 18px;background:#28a745;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:bold;opacity:0.5;">
+                    Adicionar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- Modal: editar rematrícula -->
+<div id="modalEditar" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+     background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:8px;padding:28px;width:460px;max-width:95%;max-height:90vh;overflow-y:auto;">
+        <h3 style="margin-top:0;">Editar Rematrícula</h3>
+        <form method="post" id="formEditar">
+            <input type="hidden" name="origem_turma" value="{{ turma.id }}">
+
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Próxima turma</label>
+                <select name="proxima_turma_id" id="eProxima"
+                    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">
+                    <option value="">— Nenhuma —</option>
+                    {% for t in todas_turmas %}
+                    <option value="{{ t.id }}">
+                        {{ t.tipo }} {{ t.numero }}
+                        {% if t.dia_semana %} · {{ t.dia_semana }}{% endif %}
+                        {% if t.horario %} · {{ t.horario }}{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Status</label>
+                <select name="status" id="eStatus"
+                    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">
+                    <option value="pendente">🔵 Pendente</option>
+                    <option value="renovou">✅ Renovou</option>
+                    <option value="automatico">🔄 Automático</option>
+                    <option value="em_analise">🟡 Em análise</option>
+                    <option value="nao_vai_renovar">❌ Não vai renovar</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Desconto anterior (%)</label>
+                <input type="number" name="desconto_anterior" id="eDesconto" min="0" max="100" step="1"
+                    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+            </div>
+
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Motivo (se não vai renovar)</label>
+                <textarea name="motivo_nao_renovou" id="eMotivo" rows="2"
+                    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;resize:vertical;"></textarea>
+            </div>
+
+            <div style="margin-bottom:20px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Observações</label>
+                <textarea name="observacoes" id="eObs" rows="2"
+                    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;resize:vertical;"></textarea>
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button type="button" onclick="document.getElementById('modalEditar').style.display='none'"
+                    style="padding:8px 18px;background:#6c757d;color:white;border:none;border-radius:4px;cursor:pointer;">
+                    Cancelar
+                </button>
+                <button type="submit"
+                    style="padding:8px 18px;background:#007bff;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">
+                    Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<style>
+table{width:100%;border-collapse:collapse;margin-top:10px;}
+th{background:#2c3e50;color:white;padding:11px 12px;text-align:left;font-size:13px;}
+td{padding:9px 12px;border-bottom:1px solid #eee;font-size:13px;}
+tr:hover{background:#f9f9f9;}
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:bold;}
+.badge-renovou{background:#d4edda;color:#155724;}
+.badge-auto{background:#d1ecf1;color:#0c5460;}
+.badge-analise{background:#fff3cd;color:#856404;}
+.badge-nao{background:#f8d7da;color:#721c24;}
+.badge-pendente{background:#cce5ff;color:#004085;}
+.sugestao-item{padding:8px 12px;cursor:pointer;font-size:13px;}
+.sugestao-item:hover{background:#f0f0f0;}
+</style>
+
+<script>
+// Autocomplete de alunos
+const buscaInput = document.getElementById('buscaAluno');
+const sugestoes  = document.getElementById('sugestoesAluno');
+const alunoId    = document.getElementById('alunoIdHidden');
+const alunoSel   = document.getElementById('alunoSelecionado');
+const btnSalvar  = document.getElementById('btnSalvar');
+let timer;
+
+buscaInput.addEventListener('input', function() {
+    clearTimeout(timer);
+    const q = this.value.trim();
+    alunoId.value = '';
+    alunoSel.style.display = 'none';
+    btnSalvar.disabled = true;
+    btnSalvar.style.opacity = '0.5';
+    if (q.length < 2) { sugestoes.style.display = 'none'; return; }
+    timer = setTimeout(() => {
+        fetch('/api/alunos/buscar?q=' + encodeURIComponent(q))
+            .then(r => r.json())
+            .then(data => {
+                sugestoes.innerHTML = '';
+                if (!data.length) {
+                    sugestoes.innerHTML = '<div class="sugestao-item" style="color:#888;">Nenhum aluno encontrado</div>';
+                } else {
+                    data.forEach(a => {
+                        const d = document.createElement('div');
+                        d.className = 'sugestao-item';
+                        d.innerHTML = '<strong>' + a.nome + '</strong><small style="color:#888;margin-left:6px;">Resp: ' + (a.responsavel||'—') + '</small>';
+                        d.onclick = () => {
+                            buscaInput.value  = a.nome;
+                            alunoId.value     = a.id;
+                            alunoSel.textContent = '✅ ' + a.nome + ' selecionado';
+                            alunoSel.style.display = 'block';
+                            sugestoes.style.display = 'none';
+                            btnSalvar.disabled = false;
+                            btnSalvar.style.opacity = '1';
+                        };
+                        sugestoes.appendChild(d);
+                    });
+                }
+                sugestoes.style.display = 'block';
+            });
+    }, 300);
+});
+
+document.addEventListener('click', function(e) {
+    if (!buscaInput.contains(e.target) && !sugestoes.contains(e.target)) {
+        sugestoes.style.display = 'none';
+    }
+});
+
+// Modal editar
+function abrirEditar(id, status, proximaId, desconto, motivo, obs) {
+    document.getElementById('eStatus').value  = status;
+    document.getElementById('eProxima').value = proximaId;
+    document.getElementById('eDesconto').value= Math.round(parseFloat(desconto)*100 > 100 ? parseFloat(desconto) : parseFloat(desconto)*100);
+    document.getElementById('eMotivo').value  = motivo;
+    document.getElementById('eObs').value     = obs;
+    document.getElementById('formEditar').action = '/rematriculas/' + id + '/editar';
+    document.getElementById('modalEditar').style.display = 'flex';
+}
+
+['modalNovo','modalEditar'].forEach(function(id){
+    document.getElementById(id).addEventListener('click', function(e){
+        if(e.target===this) this.style.display='none';
+    });
+});
+</script>
+{% endblock %}

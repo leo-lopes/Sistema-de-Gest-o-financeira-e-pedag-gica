@@ -1,0 +1,565 @@
+{% extends "base.html" %}
+{% block title %}{{ aluno.aluno }}{% endblock %}
+{% block content %}
+
+<!-- Cabeçalho do aluno -->
+<div
+    style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; margin-bottom:24px;">
+    <div>
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+            <h1 style="font-size:20px; font-weight:500; color:#1a1d23; margin:0;">{{ aluno.aluno }}</h1>
+            {% if aluno.ativo %}
+            <span class="badge badge-success">Ativo</span>
+            {% else %}
+            <span class="badge badge-danger">Inativo</span>
+            {% endif %}
+        </div>
+        <p style="font-size:13px; color:#6b7280; margin:0;">
+            {% if aluno.data_nascimento %}{{ aluno.data_nascimento|data_br }} · {% endif %}
+            Resp: <strong style="color:#1a1d23;">{{ aluno.responsavel }}</strong>
+            {% if aluno.telefone %} · {{ aluno.telefone }}{% endif %}
+            {% if aluno.email %} · {{ aluno.email }}{% endif %}
+        </p>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <a href="{{ url_for('editar_aluno', aluno_id=aluno.id) }}" class="btn">Editar</a>
+        <a href="{{ url_for('novo_contrato_aluno', aluno_id=aluno.id) }}" class="btn btn-primary">Novo contrato</a>
+        {% if aluno.ativo %}
+        <form method="post" action="{{ url_for('excluir_aluno', aluno_id=aluno.id) }}"
+            onsubmit="return confirm('Desativar este aluno? Contratos e parcelas pendentes serão cancelados.')">
+            <button type="submit" class="btn btn-danger">Desativar</button>
+        </form>
+        {% else %}
+        <form method="post" action="{{ url_for('reativar_aluno', aluno_id=aluno.id) }}"
+            onsubmit="return confirm('Reativar este aluno?')">
+            <button type="submit" class="btn">Reativar</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Grid principal -->
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+
+    <!-- CONTRATOS -->
+    <div style="grid-column:1/-1;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <p
+                style="font-size:11px; color:#9099a8; text-transform:uppercase; letter-spacing:0.5px; font-weight:500; margin:0;">
+                Contratos</p>
+            <div style="display:flex; gap:4px;">
+                <button onclick="mostrarAtivos()" id="btnAtivos"
+                    style="font-size:12px; padding:4px 12px; border-radius:5px; border:0.5px solid #3b5bdb; background:#eef2ff; color:#3b5bdb; cursor:pointer; font-weight:500;">
+                    Ativos ({{ contratos_ativos|length }})
+                </button>
+                <button onclick="mostrarInativos()" id="btnInativos"
+                    style="font-size:12px; padding:4px 12px; border-radius:5px; border:0.5px solid #e2e4e9; background:#fff; color:#6b7280; cursor:pointer;">
+                    Histórico ({{ contratos_inativos|length }})
+                </button>
+            </div>
+        </div>
+
+        <!-- Ativos -->
+        <div id="contratosAtivos">
+            {% if contratos_ativos %}
+            <div class="table-card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Número</th>
+                            <th>Período</th>
+                            <th style="text-align:right;">Valor</th>
+                            <th>Parcelas</th>
+                            <th>Observações</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in contratos_ativos %}
+                        <tr>
+                            <td class="td-strong">{{ c.numero_contrato }}</td>
+                            <td class="td-secondary">
+                                {{ c.data_inicio|data_br }} → {{ c.data_fim|data_br }}
+                                {% if c.data_fim < hoje %} <br><span class="badge badge-warning"
+                                        style="margin-top:3px;">Vencido</span>
+                                    {% endif %}
+                            </td>
+                            <td style="text-align:right; font-weight:500;">R$ {{ "%.2f"|format(c.valor_total or 0) }}
+                            </td>
+                            <td class="td-secondary">{{ c.qtd_parcelas }}</td>
+                            <td class="td-secondary" style="font-size:12px;">{{ c.observacoes or '—' }}</td>
+                            <td style="display:flex;gap:6px;">
+                                <a href="{{ url_for('detalhe_contrato', contrato_id=c.id) }}" class="btn btn-sm">Ver</a>
+                                <a href="{{ url_for('cancelar_contrato', contrato_id=c.id) }}"
+                                    class="btn btn-sm btn-danger"
+                                    onclick="return confirm('Ir para o formulário de cancelamento do contrato {{ c.numero_contrato }}?')">
+                                    Cancelar
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div
+                style="background:#fafbfc; border:0.5px solid #e2e4e9; border-radius:10px; padding:24px; text-align:center;">
+                <p style="color:#9099a8; margin:0 0 12px;">Nenhum contrato ativo.</p>
+                <a href="{{ url_for('novo_contrato_aluno', aluno_id=aluno.id) }}" class="btn btn-primary">Criar
+                    contrato</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Histórico -->
+        <div id="contratosInativos" style="display:none;">
+            {% if contratos_inativos %}
+            <div class="table-card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Número</th>
+                            <th>Período</th>
+                            <th>Status</th>
+                            <th style="text-align:right;">Valor</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in contratos_inativos %}
+                        <tr>
+                            <td class="td-secondary">{{ c.numero_contrato }}</td>
+                            <td class="td-secondary">{{ c.data_inicio|data_br }} → {{ c.data_fim|data_br }}</td>
+                            <td>
+                                {% if c.cancelado %}
+                                <span class="badge badge-danger">Cancelado</span>
+                                {% elif c.excluido_em %}
+                                <span class="badge badge-danger">Excluído</span>
+                                {% elif c.status == 'vencido' %}
+                                <span class="badge badge-warning">Vencido</span>
+                                {% else %}
+                                <span class="badge badge-neutral">Inativo</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align:right; color:#6b7280;">R$ {{ "%.2f"|format(c.valor_total or 0) }}</td>
+                            <td style="display:flex; gap:6px; flex-wrap:wrap;">
+                                <a href="{{ url_for('detalhe_contrato', contrato_id=c.id) }}" class="btn btn-sm">Ver</a>
+                                {% if c.cancelado %}
+                                <button onclick="openModal('modalReativar{{ c.id }}')" class="btn btn-sm">
+                                    Reativar (erro)
+                                </button>
+                                <!-- Modal de reativação -->
+                                <div id="modalReativar{{ c.id }}" class="modal-overlay">
+                                    <div class="modal" style="width:400px;">
+                                        <h3>Reativar contrato cancelado</h3>
+                                        <p style="font-size:13px;color:#6b7280;margin-bottom:14px;">
+                                            Use apenas em caso de cancelamento registrado por engano.
+                                            Contrato: <strong>{{ c.numero_contrato }}</strong>
+                                        </p>
+                                        <form method="post"
+                                            action="{{ url_for('reativar_contrato_cancelado', contrato_id=c.id) }}">
+                                            <div class="field" style="margin-bottom:16px;">
+                                                <span>Reativado por</span>
+                                                <input type="text" name="reativado_por" placeholder="Seu nome" required>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn"
+                                                    onclick="closeModal('modalReativar{{ c.id }}')">Cancelar</button>
+                                                <button type="submit" class="btn btn-primary">Confirmar
+                                                    reativação</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                                {% elif not c.excluido_em %}
+                                <form method="post" action="{{ url_for('reativar_contrato', contrato_id=c.id) }}"
+                                    onsubmit="return confirm('Reativar contrato {{ c.numero_contrato }}?')">
+                                    <button type="submit" class="btn btn-sm">Reativar</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p style="color:#9099a8; text-align:center; padding:20px;">Nenhum contrato inativo no histórico.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- REMATRÍCULAS -->
+    <div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <p
+                style="font-size:11px; color:#9099a8; text-transform:uppercase; letter-spacing:0.5px; font-weight:500; margin:0;">
+                Rematrículas / Turmas</p>
+            <button onclick="openModal('modalNovaRem')" class="btn btn-sm">+ Vincular turma</button>
+        </div>
+
+        {% if rematriculas %}
+        <div class="table-card">
+            {% for r in rematriculas %}
+            <div style="padding:12px 16px; {% if not loop.last %}border-bottom:0.5px solid #f0f1f3;{% endif %}">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                    <div style="flex:1; min-width:0;">
+                        <p style="font-size:13px; font-weight:500; color:#1a1d23; margin:0 0 3px;">
+                            {% if r.turma_tipo %}
+                            <a href="{{ url_for('detalhe_turma_rematricula', turma_id=r.turma_id) }}"
+                                style="color:#1a1d23; text-decoration:none;">
+                                {{ r.turma_tipo }} {{ r.turma_numero }}
+                            </a>
+                            {% else %}
+                            Sem turma definida
+                            {% endif %}
+                        </p>
+                        <p style="font-size:12px; color:#9099a8; margin:0 0 6px;">
+                            {% if r.dia_semana %}{{ r.dia_semana }}{% endif %}
+                            {% if r.horario %} · {{ r.horario }}{% endif %}
+                            {% if r.professor %} · Prof. {{ r.professor }}{% endif %}
+                            {% if r.periodo %} · {{ r.periodo }}{% endif %}
+                        </p>
+                        <!-- Barra de progresso do curso -->
+                        {% if r.data_inicio and r.data_fim %}
+                        {% set d_ini = r.data_inicio %}
+                        {% set d_fim = r.data_fim %}
+                        {% set hoje_s = hoje %}
+                        <div style="margin-bottom:4px;">
+                            <div
+                                style="display:flex; justify-content:space-between; font-size:11px; color:#9099a8; margin-bottom:3px;">
+                                <span>{{ d_ini|data_br }}</span>
+                                <span>{{ r.pct_curso }}% concluído</span>
+                                <span>{{ d_fim|data_br }}</span>
+                            </div>
+                            <div style="background:#f0f1f3; border-radius:99px; height:5px; overflow:hidden;">
+                                <div
+                                    style="background:{% if r.pct_curso >= 100 %}#1a7f4e{% elif r.pct_curso >= 75 %}#c07a00{% else %}#3b5bdb{% endif %};
+                                                height:100%; width:{{ [r.pct_curso, 100]|min }}%; border-radius:99px; transition:width 0.3s;">
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if r.motivo_nao_renovou %}
+                        <p style="font-size:12px; color:#c0392b; margin:4px 0 0;">{{ r.motivo_nao_renovou }}</p>
+                        {% endif %}
+                        {% if r.renovacao_automatica %}
+                        <p style="font-size:11px; color:#3b5bdb; margin:4px 0 0;">Renovação automática marcada</p>
+                        {% endif %}
+                    </div>
+                    <div
+                        style="text-align:right; flex-shrink:0; display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+                        {% if r.status == 'renovou' %}
+                        <span class="badge badge-success">Renovou</span>
+                        {% elif r.status == 'automatico' %}
+                        <span class="badge badge-info">Automático</span>
+                        {% elif r.status == 'em_analise' %}
+                        <span class="badge badge-warning">Em análise</span>
+                        {% elif r.status == 'nao_vai_renovar' %}
+                        <span class="badge badge-danger">Não renova</span>
+                        {% else %}
+                        <span class="badge badge-neutral">Pendente</span>
+                        {% endif %}
+                        {% if r.desconto_anterior %}
+                        <p style="font-size:11px; color:#9099a8; margin:0;">
+                            Desc. ant.: {{(r.desconto_anterior)}}%
+                        </p>
+                        {% endif %}
+                        <button onclick="abrirEditarRem(
+                            {{ r.id }},
+                            {{ 1 if r.renovacao_automatica else 0 }},
+                            '{{ r.status }}',
+                            '{{ r.motivo_nao_renovou or '' }}',
+                            '{{ r.observacoes or '' }}',
+                            {{ r.desconto_anterior }},
+                            '{{ r.turma_id or '' }}'
+                        )" class="btn btn-sm" style="margin-top:2px;">Editar</button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div
+            style="background:#fafbfc; border:0.5px solid #e2e4e9; border-radius:10px; padding:20px; text-align:center;">
+            <p style="color:#9099a8; margin:0 0 10px; font-size:13px;">Nenhuma turma vinculada.</p>
+            <button onclick="openModal('modalNovaRem')" class="btn btn-sm btn-primary">Vincular turma</button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- PARCELAS RECENTES -->
+    <div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <p
+                style="font-size:11px; color:#9099a8; text-transform:uppercase; letter-spacing:0.5px; font-weight:500; margin:0;">
+                Parcelas recentes</p>
+            <a href="{{ url_for('pagamentos', aba='busca', q=aluno.aluno) }}"
+                style="font-size:12px; color:#3b5bdb; text-decoration:none;">Ver todas</a>
+        </div>
+
+        {% if parcelas_recentes %}
+        <div class="table-card">
+            {% for p in parcelas_recentes %}
+            <div style="padding:10px 16px; display:flex; align-items:center; justify-content:space-between;
+                        {% if not loop.last %}border-bottom:0.5px solid #f0f1f3;{% endif %}">
+                <div>
+                    <p style="font-size:13px; font-weight:500; color:#1a1d23; margin:0 0 2px;">
+                        Parc. {{ p.numero_parcela }} — {{ p.numero_contrato }}
+                    </p>
+                    <p style="font-size:12px; color:#9099a8; margin:0;">{{ p.data_vencimento|data_br }}</p>
+                </div>
+                <div style="text-align:right;">
+                    <p style="font-size:13px; font-weight:500; margin:0 0 3px;">R$ {{ "%.2f"|format(p.valor_final) }}
+                    </p>
+                    {% if p.status_pagamento == 'pago' %}
+                    <span class="badge badge-success">Pago</span>
+                    {% elif p.status_pagamento == 'atrasado' %}
+                    <span class="badge badge-danger">Atrasado</span>
+                    {% else %}
+                    <span class="badge badge-info">Pendente</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div
+            style="background:#fafbfc; border:0.5px solid #e2e4e9; border-radius:10px; padding:20px; text-align:center;">
+            <p style="color:#9099a8; margin:0; font-size:13px;">Nenhuma parcela encontrada.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Modal: vincular turma -->
+<div id="modalNovaRem" class="modal-overlay">
+    <div class="modal" style="width:500px;">
+        <h3>Vincular turma — {{ aluno.aluno }}</h3>
+        <form method="post" action="{{ url_for('nova_rematricula') }}">
+            <input type="hidden" name="aluno_id" value="{{ aluno.id }}">
+            <input type="hidden" name="origem" value="">
+
+            <div style="display:grid; gap:12px;">
+
+                <!-- Turma -->
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <span
+                        style="font-size:11px; color:#9099a8; text-transform:uppercase; letter-spacing:0.4px; font-weight:500;">Turma</span>
+                    <select name="turma_id"
+                        style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7;">
+                        <option value="">— Nenhuma dessas (definir depois) —</option>
+                        {% for t in turmas_disponiveis %}
+                        <option value="{{ t.id }}">
+                            {{ t.tipo }} {{ t.numero }}
+                            {% if t.dia_semana %} · {{ t.dia_semana }}{% endif %}
+                            {% if t.horario %} · {{ t.horario }}{% endif %}
+                            {% if t.professor %} · Prof. {{ t.professor }}{% endif %}
+                            {% if t.periodo %} · {{ t.periodo }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Renovação automática -->
+                <div
+                    style="background:#f4f5f7; border-radius:8px; padding:12px 14px; display:flex; align-items:flex-start; gap:10px;">
+                    <input type="checkbox" name="renovacao_automatica" value="1" id="chkAuto"
+                        style="margin-top:2px; accent-color:#3b5bdb; width:15px; height:15px;">
+                    <div>
+                        <label for="chkAuto" style="font-size:13px; font-weight:500; color:#1a1d23; cursor:pointer;">
+                            Renovação automática
+                        </label>
+                        <p style="font-size:12px; color:#6b7280; margin:2px 0 0; line-height:1.4;">
+                            Marque se o aluno já assinou dois módulos. O sistema avisará 2 semanas antes do fim da turma
+                            para colocá-lo na próxima.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Status -->
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <span
+                        style="font-size:11px; color:#9099a8; text-transform:uppercase; letter-spacing:0.4px; font-weight:500;">Status
+                        de rematrícula</span>
+                    <select name="status"
+                        style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7;">
+                        <option value="pendente">Pendente</option>
+                        <option value="renovou">Renovou</option>
+                        <option value="em_analise">Em análise</option>
+                        <option value="nao_vai_renovar">Não vai renovar</option>
+                    </select>
+                </div>
+
+                <!-- Desconto e período -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                        <span
+                            style="font-size:11px; color:#9099a8; text-transform:uppercase; letter-spacing:0.4px; font-weight:500;">Desconto
+                            anterior (%)</span>
+                        <input type="number" name="desconto_anterior" value="0" min="0" max="100"
+                            style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7;">
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                        <span
+                            style="font-size:11px; color:#9099a8; text-transform:uppercase; letter-spacing:0.4px; font-weight:500;">Período</span>
+                        <input type="text" name="periodo" placeholder="ex: 2026-1"
+                            style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7;">
+                    </div>
+                </div>
+
+                <!-- Motivo -->
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <span
+                        style="font-size:11px; color:#9099a8; text-transform:uppercase; letter-spacing:0.4px; font-weight:500;">Motivo
+                        (se não vai renovar)</span>
+                    <textarea name="motivo_nao_renovou" rows="2"
+                        style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7; resize:vertical;"></textarea>
+                </div>
+
+                <!-- Observações -->
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <span
+                        style="font-size:11px; color:#9099a8; text-transform:uppercase; letter-spacing:0.4px; font-weight:500;">Observações</span>
+                    <textarea name="observacoes" rows="2"
+                        style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7; resize:vertical;"></textarea>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="closeModal('modalNovaRem')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: editar rematrícula -->
+<div id="modalEditarRem" class="modal-overlay">
+    <div class="modal" style="width:460px;">
+        <h3>Editar rematrícula</h3>
+        <form method="post" id="formEditarRem">
+            <input type="hidden" name="origem_aluno" value="{{ aluno.id }}">
+            <div style="display:grid; gap:12px;">
+
+                <!-- Turma -->
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <span
+                        style="font-size:11px; color:#9099a8; text-transform:uppercase; letter-spacing:0.4px; font-weight:500;">Turma</span>
+                    <select name="turma_id" id="editRemTurma"
+                        style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7;">
+                        <option value="">— Nenhuma dessas (definir depois) —</option>
+                        {% for t in turmas_disponiveis %}
+                        <option value="{{ t.id }}">
+                            {{ t.tipo }} {{ t.numero }}
+                            {% if t.dia_semana %} · {{ t.dia_semana }}{% endif %}
+                            {% if t.horario %} · {{ t.horario }}{% endif %}
+                            {% if t.professor %} · Prof. {{ t.professor }}{% endif %}
+                            {% if t.periodo %} · {{ t.periodo }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <span style="font-size:11px; color:#9099a8;">Altere apenas se precisar corrigir ou trocar a
+                        turma.</span>
+                </div>
+
+                <!-- Renovação automática -->
+                <div
+                    style="background:#f4f5f7; border-radius:8px; padding:12px 14px; display:flex; align-items:flex-start; gap:10px;">
+                    <input type="checkbox" name="renovacao_automatica" value="1" id="chkAutoEdit"
+                        style="margin-top:2px; accent-color:#3b5bdb; width:15px; height:15px; flex-shrink:0;">
+                    <div>
+                        <label for="chkAutoEdit"
+                            style="font-size:13px; font-weight:500; color:#1a1d23; cursor:pointer; display:block; margin-bottom:3px;">
+                            Renovação automática
+                        </label>
+                        <p style="font-size:12px; color:#6b7280; margin:0; line-height:1.4;">
+                            Aluno já assinou dois módulos — próxima turma garantida.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Status -->
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <span
+                        style="font-size:11px; color:#9099a8; text-transform:uppercase; letter-spacing:0.4px; font-weight:500;">Status</span>
+                    <select name="status" id="editRemStatus"
+                        style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7;">
+                        <option value="pendente">Pendente</option>
+                        <option value="renovou">Renovou</option>
+                        <option value="automatico">Automático</option>
+                        <option value="em_analise">Em análise</option>
+                        <option value="nao_vai_renovar">Não vai renovar</option>
+                    </select>
+                </div>
+
+                <!-- Desconto -->
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <span
+                        style="font-size:11px; color:#9099a8; text-transform:uppercase; letter-spacing:0.4px; font-weight:500;">Desconto
+                        anterior (%)</span>
+                    <input type="number" name="desconto_anterior" id="editRemDesconto" min="0" max="100"
+                        style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7;">
+                </div>
+
+                <!-- Motivo -->
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <span
+                        style="font-size:11px; color:#9099a8; text-transform:uppercase; letter-spacing:0.4px; font-weight:500;">Motivo
+                        (se não vai renovar)</span>
+                    <textarea name="motivo_nao_renovou" id="editRemMotivo" rows="2"
+                        style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7; resize:vertical;"></textarea>
+                </div>
+
+                <!-- Observações -->
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <span
+                        style="font-size:11px; color:#9099a8; text-transform:uppercase; letter-spacing:0.4px; font-weight:500;">Observações</span>
+                    <textarea name="observacoes" id="editRemObs" rows="2"
+                        style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7; resize:vertical;"></textarea>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="closeModal('modalEditarRem')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function abrirEditarRem(id, autoRenovacao, status, motivo, obs, desconto, turmaId) {
+        document.getElementById('chkAutoEdit').checked = autoRenovacao === 1;
+        document.getElementById('editRemStatus').value = status;
+        document.getElementById('editRemMotivo').value = motivo;
+        document.getElementById('editRemObs').value = obs;
+        document.getElementById('editRemDesconto').value = desconto;
+        document.getElementById('editRemTurma').value = turmaId || '';
+        document.getElementById('formEditarRem').action = '/rematriculas/' + id + '/editar';
+        openModal('modalEditarRem');
+    }
+
+    function mostrarAtivos() {
+        document.getElementById('contratosAtivos').style.display = 'block';
+        document.getElementById('contratosInativos').style.display = 'none';
+        document.getElementById('btnAtivos').style.background = '#eef2ff';
+        document.getElementById('btnAtivos').style.color = '#3b5bdb';
+        document.getElementById('btnAtivos').style.borderColor = '#3b5bdb';
+        document.getElementById('btnInativos').style.background = '#fff';
+        document.getElementById('btnInativos').style.color = '#6b7280';
+        document.getElementById('btnInativos').style.borderColor = '#e2e4e9';
+    }
+    function mostrarInativos() {
+        document.getElementById('contratosAtivos').style.display = 'none';
+        document.getElementById('contratosInativos').style.display = 'block';
+        document.getElementById('btnInativos').style.background = '#eef2ff';
+        document.getElementById('btnInativos').style.color = '#3b5bdb';
+        document.getElementById('btnInativos').style.borderColor = '#3b5bdb';
+        document.getElementById('btnAtivos').style.background = '#fff';
+        document.getElementById('btnAtivos').style.color = '#6b7280';
+        document.getElementById('btnAtivos').style.borderColor = '#e2e4e9';
+    }
+</script>
+{% endblock %}

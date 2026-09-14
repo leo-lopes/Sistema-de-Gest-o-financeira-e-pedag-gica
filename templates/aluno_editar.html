@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Editar aluno{% endblock %}
+
+{% block content %}
+<h2>Editar aluno</h2>
+
+<form method="post" class="form-grid">
+
+    <label>
+        Nome<br>
+        <input type="text" name="nome" value="{{ aluno.nome }}" required>
+    </label>
+
+    <label>
+        Data de nascimento<br>
+        <input type="date" name="data_nascimento" value="{{ aluno.data_nascimento or '' }}">
+    </label>
+
+    <label>
+        Turma<br>
+        <select name="turma_id">
+            <option value="">Sem turma</option>
+            {% for t in turmas %}
+                <option value="{{ t.id }}"
+                        {% if aluno.turma_id == t.id %}selected{% endif %}>
+                    {{ t.nome }}
+                </option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <div style="grid-column: 1 / -1; margin-top: 1rem;">
+        <button type="submit">Salvar alterações</button>
+    </div>
+
+</form>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Notas Emitidas com Sucesso{% endblock %}
+
+{% block content %}
+<h2>✅ Emissão em Lote Concluída</h2>
+
+<div style="padding: 20px; background: #e8f5e9; border-radius: 5px; margin: 20px 0;">
+    <p style="font-size: 18px;">
+        <strong>{{ emitidas }} nota(s) fiscal(is) emitida(s) com sucesso!</strong>
+    </p>
+
+    {% if caminho_arquivo %}
+    <p>
+        📁 Planilha gerada: <strong>{{ nome_arquivo }}</strong><br>
+        <small>Salva em: exports_nf/{{ nome_arquivo }}</small>
+    </p>
+    {% endif %}
+</div>
+
+{% if erros %}
+<div style="padding: 20px; background: #ffebee; border-radius: 5px; margin: 20px 0;">
+    <h3 style="color: #c62828;">⚠️ Erros encontrados:</h3>
+    <ul>
+        {% for erro in erros %}
+        <li>{{ erro }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div style="margin-top: 30px;">
+    <a href="{{ url_for('notas_a_emitir') }}"
+        style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;">
+        🔄 Emitir Mais Notas
+    </a>
+
+    <a href="{{ url_for('listar_notas') }}"
+        style="background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;">
+        📄 Ver Todas as Notas
+    </a>
+
+    {% if caminho_arquivo %}
+    <a href="{{ url_for('download_excel_lote', nome=nome_arquivo) }}"
+        style="background: #ff9800; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+        📥 Baixar Planilha Excel
+    </a>
+    {% endif %}
+</div>
+
+<script>
+    // Redireciona automático após 10 segundos
+    setTimeout(function () {
+        window.location.href = "{{ url_for('listar_notas') }}";
+    }, 10000);
+</script>
+{% endblock %}

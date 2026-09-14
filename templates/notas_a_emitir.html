@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% block title %}Notas a Emitir{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <h1>Notas a emitir</h1>
+    <p>Parcelas com nota fiscal pendente</p>
+</div>
+
+<!-- Filtros -->
+<form method="get" action="{{ url_for('notas_a_emitir') }}" class="filter-bar">
+    <div class="filter-group">
+        <span class="filter-label">De</span>
+        <input type="date" name="de" value="{{ de }}">
+    </div>
+    <div class="filter-group">
+        <span class="filter-label">Até</span>
+        <input type="date" name="ate" value="{{ ate }}">
+    </div>
+    <div style="display:flex; gap:8px; align-items:flex-end;">
+        <button type="submit" class="btn btn-primary">Filtrar</button>
+        <a href="{{ url_for('notas_a_emitir') }}" class="btn" style="color:var(--text-secondary);">Limpar</a>
+    </div>
+</form>
+
+{% if parcelas %}
+<form id="formLote" method="post" action="{{ url_for('preview_lote') }}">
+    <div id="hiddenIds"></div>
+
+    <!-- Barra de seleção em lote -->
+    <div style="margin:0 0 16px; padding:14px 16px; background:var(--bg-surface);
+                border:0.5px solid var(--border); border-radius:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <span style="font-size:13px; font-weight:500; color:var(--text-primary);">
+                    Selecione as parcelas para emitir em lote
+                </span>
+                <span id="contadorSelecionadas" class="badge badge-neutral">0 selecionadas</span>
+                {% if total_filtro > parcelas|length %}
+                <span style="color:var(--text-muted); font-size:12px;">
+                    (mostrando {{ parcelas|length }} de {{ total_filtro }} do filtro)
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+            <button type="button" onclick="selecionarPagina()" class="btn btn-sm">
+                Selecionar página ({{ parcelas|length }})
+            </button>
+            {% if total_filtro > parcelas|length %}
+            <button type="button" onclick="selecionarTodosFiltro()" class="btn btn-sm"
+                style="color:var(--accent-text); border-color:var(--accent-border); font-weight:500;">
+                Selecionar filtro ({{ total_filtro }})
+            </button>
+            {% endif %}
+            <button type="button" onclick="desmarcarTodas()" class="btn btn-sm btn-danger">
+                Desmarcar todas
+            </button>
+            <button type="submit" id="btnPreview" class="btn btn-sm"
+                style="color:var(--warning); border-color:var(--warning-border); font-weight:500;" disabled>
+                Pré-visualizar lote
+            </button>
+        </div>
+
+        <!-- Aviso seleção total -->
+        <div id="avisoTodosFiltro" style="display:none; margin-top:10px; padding:8px 12px;
+             background:var(--warning-bg); border-radius:6px; color:var(--warning); font-size:12px;">
+            Todas as <strong>{{ total_filtro }}</strong> parcelas do filtro estão selecionadas,
+            incluindo as de outras páginas.
+        </div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="table-card">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:32px;">
+                        <input type="checkbox" id="selectAll" onchange="toggleTodosPagina(this)"
+                            style="accent-color:var(--accent);">
+                    </th>
+                    <th>ID</th>
+                    <th>Nº Parc.</th>
+                    <th>Valor</th>
+                    <th>Vencimento</th>
+                    <th>Aluno</th>
+                    <th>Responsável</th>
+                    <th>Contrato</th>
+                    <th style="width:80px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in parcelas %}
+                <tr {% if p.id in criticas %}class="critico" {% endif %}>
+                    <td>
+                        <input type="checkbox" name="parcelas_ids" value="{{ p.id }}" class="checkbox-parcela"
+                            onchange="atualizarContador()" style="accent-color:var(--accent);">
+                    </td>
+                    <td class="td-secondary">{{ p.id }}</td>
+                    <td class="td-secondary">{{ p.numero_parcela }}</td>
+                    <td style="font-weight:500;">R$ {{ "%.2f"|format(p.valor_final) }}</td>
+                    <td>
+                        {{ p.data_vencimento|data_br }}
+                        {% if p.id in criticas %}
+                        <br><small style="color:var(--danger); font-size:11px;">Vence em breve</small>
+                        {% endif %}
+                    </td>
+                    <td class="td-strong">{{ p.aluno }}</td>
+                    <td class="td-secondary">{{ p.responsavel }}</td>
+                    <td class="td-secondary">{{ p.contrato_id }}</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-primary"
+                            onclick="emitirNF({{ p.id }})">Emitir</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Paginação -->
+        {% if total_pages > 1 %}
+        <div class="pagination">
+            <span>Página {{ page }} de {{ total_pages }}</span>
+            <div class="pagination-pages">
+                {% if page > 1 %}
+                <a href="{{ url_for('notas_a_emitir', page=page-1, de=de, ate=ate) }}">Anterior</a>
+                {% endif %}
+                <span class="pg-ativo">{{ page }}</span>
+                {% if page < total_pages %} <a href="{{ url_for('notas_a_emitir', page=page+1, de=de, ate=ate) }}">
+                    Próxima</a>
+                    {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</form>
+
+<!-- Resumo -->
+<div style="margin-top:4px; padding:12px 16px; background:var(--bg-surface);
+            border:0.5px solid var(--border); border-radius:10px;
+            font-size:13px; color:var(--text-secondary);">
+    {{ total_filtro }} parcela(s) no filtro ·
+    Valor total desta página: <strong style="color:var(--text-primary);">
+        R$ {{ "%.2f"|format(parcelas|sum(attribute='valor_final')) }}
+    </strong>
+    {% if criticas %}
+    · <span style="color:var(--danger);">{{ criticas|length }} vence(m) em até 30 dias</span>
+    {% endif %}
+</div>
+
+{% else %}
+<p style="margin-top:20px; color:var(--text-muted);">Nenhuma parcela pendente de nota fiscal encontrada.</p>
+{% endif %}
+
+<script>
+    const TODOS_IDS = {{ todos_ids | tojson }};
+    let modoTodosFiltro = false;
+
+    function atualizarContador() {
+        const checkboxes = document.querySelectorAll('.checkbox-parcela:checked');
+        const contador = document.getElementById('contadorSelecionadas');
+        const btnPreview = document.getElementById('btnPreview');
+        const aviso = document.getElementById('avisoTodosFiltro');
+        const qtd = modoTodosFiltro ? TODOS_IDS.length : checkboxes.length;
+
+        contador.textContent = qtd + ' selecionada(s)';
+        btnPreview.disabled = qtd === 0;
+
+        if (qtd === 0) {
+            contador.className = 'badge badge-neutral';
+        } else if (modoTodosFiltro) {
+            contador.className = 'badge badge-info';
+        } else {
+            contador.className = 'badge badge-success';
+        }
+        aviso.style.display = modoTodosFiltro ? 'block' : 'none';
+    }
+    function emitirNF(id) {
+        if (!confirm('Emitir nota fiscal para esta parcela?')) return;
+        const f = document.createElement('form');
+        f.method = 'POST';
+        f.action = '/notas/gerar/' + id;
+        document.body.appendChild(f);
+        f.submit();
+    }
+    function selecionarPagina() {
+        modoTodosFiltro = false;
+        document.getElementById('hiddenIds').innerHTML = '';
+        document.querySelectorAll('.checkbox-parcela').forEach(cb => {
+            cb.checked = true;
+            cb.name = 'parcelas_ids';
+        });
+        document.getElementById('selectAll').checked = true;
+        atualizarContador();
+    }
+
+    function selecionarTodosFiltro() {
+        modoTodosFiltro = true;
+        document.querySelectorAll('.checkbox-parcela').forEach(cb => {
+            cb.checked = true;
+            cb.removeAttribute('name');
+        });
+        document.getElementById('selectAll').checked = true;
+        const container = document.getElementById('hiddenIds');
+        container.innerHTML = '';
+        TODOS_IDS.forEach(id => {
+            const inp = document.createElement('input');
+            inp.type = 'hidden'; inp.name = 'parcelas_ids'; inp.value = id;
+            container.appendChild(inp);
+        });
+        atualizarContador();
+    }
+
+    function desmarcarTodas() {
+        modoTodosFiltro = false;
+        document.getElementById('hiddenIds').innerHTML = '';
+        document.querySelectorAll('.checkbox-parcela').forEach(cb => {
+            cb.checked = false;
+            cb.name = 'parcelas_ids';
+        });
+        document.getElementById('selectAll').checked = false;
+        atualizarContador();
+    }
+
+    function toggleTodosPagina(source) {
+        if (!source.checked) desmarcarTodas();
+        else selecionarPagina();
+    }
+
+    document.addEventListener('DOMContentLoaded', atualizarContador);
+</script>
+{% endblock %}

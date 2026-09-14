@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% block title %}Turmas{% endblock %}
+{% block content %}
+<h2>🏫 Turmas</h2>
+
+<button onclick="document.getElementById('modalNova').style.display='flex'"
+    style="background:#2c3e50;color:white;padding:9px 18px;border:none;border-radius:5px;cursor:pointer;margin-bottom:20px;">
+    + Nova Turma
+</button>
+
+{% if turmas %}
+<table>
+    <thead>
+        <tr>
+            <th>Turma</th>
+            <th>Dia / Horário</th>
+            <th>Professor</th>
+            <th>Período</th>
+            <th>Início</th>
+            <th>Fim</th>
+            <th>Alunos</th>
+            <th>Status</th>
+            <th style="width:160px;">Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for t in turmas %}
+        <tr>
+            <td><strong>{{ t.tipo }} {{ t.numero }}</strong></td>
+            <td>{{ t.dia_semana or '—' }}{% if t.horario %} · {{ t.horario }}{% endif %}</td>
+            <td>{{ t.professor or '—' }}</td>
+            <td>{{ t.periodo or '—' }}</td>
+            <td>{{ t.data_inicio|data_br if t.data_inicio else '—' }}</td>
+            <td>{{ t.data_fim|data_br if t.data_fim else '—' }}</td>
+            <td>
+                <a href="{{ url_for('detalhe_turma_rematricula', turma_id=t.id) }}"
+                    style="font-weight:bold;">{{ t.total_alunos }}</a>
+            </td>
+            <td>
+                {% if t.ativa %}
+                    <span class="badge badge-ativo">Ativa</span>
+                {% else %}
+                    <span class="badge badge-inativo">Inativa</span>
+                {% endif %}
+            </td>
+            <td>
+                <button onclick="abrirEditar({{ t.id }}, '{{ t.tipo }}', '{{ t.numero }}',
+                    '{{ t.professor_id or '' }}', '{{ t.horario or '' }}',
+                    '{{ t.dia_semana or '' }}', '{{ t.data_inicio or '' }}',
+                    '{{ t.data_fim or '' }}', '{{ t.codigo_astro or '' }}',
+                    '{{ t.periodo or '' }}')"
+                    style="background:#007bff;color:white;padding:4px 9px;border:none;border-radius:3px;cursor:pointer;font-size:12px;">
+                    Editar
+                </button>
+                <form method="post" action="{{ url_for('toggle_turma', turma_id=t.id) }}" style="display:inline;">
+                    <button type="submit"
+                        style="background:{% if t.ativa %}#ff9800{% else %}#28a745{% endif %};color:white;padding:4px 9px;border:none;border-radius:3px;cursor:pointer;font-size:12px;">
+                        {% if t.ativa %}Desativar{% else %}Ativar{% endif %}
+                    </button>
+                </form>
+                {% if t.total_alunos == 0 %}
+                <form method="post" action="{{ url_for('excluir_turma', turma_id=t.id) }}" style="display:inline;"
+                      onsubmit="return confirm('Excluir turma {{ t.tipo }} {{ t.numero }}?')">
+                    <button type="submit"
+                        style="background:#dc3545;color:white;padding:4px 9px;border:none;border-radius:3px;cursor:pointer;font-size:12px;">
+                        Excluir
+                    </button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p style="color:#888;margin-top:20px;">Nenhuma turma cadastrada ainda.</p>
+{% endif %}
+
+<!-- Modal nova turma -->
+<div id="modalNova" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+     background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:8px;padding:28px;width:480px;max-width:95%;max-height:90vh;overflow-y:auto;">
+        <h3 style="margin-top:0;">Nova Turma</h3>
+        <form method="post" action="{{ url_for('nova_turma') }}">
+            <div style="margin-bottom:12px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Tipo *</label>
+                <select name="tipo" required style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">
+                    <option value="">— Selecione —</option>
+                    <option value="Kids">Kids</option>
+                    <option value="Teens">Teens</option>
+                    <option value="Young">Young</option>
+                </select>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Número *</label>
+                <select name="numero" required style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">
+                    <option value="">— Selecione —</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                </select>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Professor</label>
+                <select name="professor_id" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">
+                    <option value="">— Sem professor —</option>
+                    {% for p in professores %}
+                    <option value="{{ p.id }}">{{ p.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Dia da semana</label>
+                <select name="dia_semana" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">
+                    <option value="">— Selecione —</option>
+                    <option>Segunda</option><option>Terça</option><option>Quarta</option>
+                    <option>Quinta</option><option>Sexta</option><option>Sábado</option><option>Domingo</option>
+                </select>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Horário</label>
+                <input type="text" name="horario" placeholder="ex: 08:00 às 10:00"
+                    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                <div>
+                    <label style="display:block;font-weight:bold;margin-bottom:4px;">Data início</label>
+                    <input type="date" name="data_inicio"
+                        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="display:block;font-weight:bold;margin-bottom:4px;">Data fim</label>
+                    <input type="date" name="data_fim"
+                        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+                </div>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Período</label>
+                <input type="text" name="periodo" placeholder="ex: 2026-1"
+                    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Código Astro</label>
+                <input type="text" name="codigo_astro"
+                    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+                <button type="button" onclick="document.getElementById('modalNova').style.display='none'"
+                    style="padding:8px 18px;background:#6c757d;color:white;border:none;border-radius:4px;cursor:pointer;">
+                    Cancelar
+                </button>
+                <button type="submit"
+                    style="padding:8px 18px;background:#28a745;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">
+                    Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal editar turma -->
+<div id="modalEditar" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+     background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:8px;padding:28px;width:480px;max-width:95%;max-height:90vh;overflow-y:auto;">
+        <h3 style="margin-top:0;">Editar Turma</h3>
+        <form method="post" id="formEditar">
+            <div style="margin-bottom:12px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Tipo *</label>
+                <select name="tipo" id="eTipo" required style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">
+                    <option value="Kids">Kids</option>
+                    <option value="Teens">Teens</option>
+                    <option value="Young">Young</option>
+                </select>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Número *</label>
+                <select name="numero" id="eNumero" required style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">
+                    <option value="1">1</option><option value="2">2</option>
+                    <option value="3">3</option><option value="4">4</option>
+                </select>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Professor</label>
+                <select name="professor_id" id="eProf" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">
+                    <option value="">— Sem professor —</option>
+                    {% for p in professores %}
+                    <option value="{{ p.id }}">{{ p.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Dia da semana</label>
+                <select name="dia_semana" id="eDia" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">
+                    <option value="">— Selecione —</option>
+                    <option>Segunda</option><option>Terça</option><option>Quarta</option>
+                    <option>Quinta</option><option>Sexta</option><option>Sábado</option><option>Domingo</option>
+                </select>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Horário</label>
+                <input type="text" name="horario" id="eHorario" placeholder="ex: 08:00 às 10:00"
+                    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                <div>
+                    <label style="display:block;font-weight:bold;margin-bottom:4px;">Data início</label>
+                    <input type="date" name="data_inicio" id="eInicio"
+                        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="display:block;font-weight:bold;margin-bottom:4px;">Data fim</label>
+                    <input type="date" name="data_fim" id="eFim"
+                        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+                </div>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Período</label>
+                <input type="text" name="periodo" id="ePeriodo"
+                    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Código Astro</label>
+                <input type="text" name="codigo_astro" id="eAstro"
+                    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+                <button type="button" onclick="document.getElementById('modalEditar').style.display='none'"
+                    style="padding:8px 18px;background:#6c757d;color:white;border:none;border-radius:4px;cursor:pointer;">
+                    Cancelar
+                </button>
+                <button type="submit"
+                    style="padding:8px 18px;background:#007bff;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">
+                    Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+table{width:100%;border-collapse:collapse;margin-top:10px;}
+th{background:#2c3e50;color:white;padding:11px 12px;text-align:left;font-size:13px;}
+td{padding:9px 12px;border-bottom:1px solid #eee;font-size:13px;}
+tr:hover{background:#f9f9f9;}
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:bold;}
+.badge-ativo{background:#d4edda;color:#155724;}
+.badge-inativo{background:#f8d7da;color:#721c24;}
+</style>
+
+<script>
+function abrirEditar(id, tipo, numero, profId, horario, dia, inicio, fim, astro, periodo) {
+    document.getElementById('eTipo').value    = tipo;
+    document.getElementById('eNumero').value  = numero;
+    document.getElementById('eProf').value    = profId;
+    document.getElementById('eHorario').value = horario;
+    document.getElementById('eDia').value     = dia;
+    document.getElementById('eInicio').value  = inicio;
+    document.getElementById('eFim').value     = fim;
+    document.getElementById('eAstro').value   = astro;
+    document.getElementById('ePeriodo').value = periodo;
+    document.getElementById('formEditar').action = '/turmas/' + id + '/editar';
+    document.getElementById('modalEditar').style.display = 'flex';
+}
+['modalNova','modalEditar'].forEach(function(id){
+    document.getElementById(id).addEventListener('click', function(e){
+        if(e.target===this) this.style.display='none';
+    });
+});
+</script>
+{% endblock %}

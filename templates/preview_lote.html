@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block title %}Pré-visualização de Lote{% endblock %}
+
+{% block content %}
+<h2>👁️ Pré-visualização de Emissão em Lote</h2>
+
+<div style="margin: 20px 0; padding: 15px; background: #fff3cd; border-radius: 5px;">
+    <p style="margin: 0;">
+        <strong>⚠️ Verifique os dados abaixo antes de emitir as notas:</strong><br>
+        Esta é uma pré-visualização. Nenhuma nota foi emitida ainda.
+    </p>
+</div>
+
+<!-- Resumo -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0;">
+    <div style="background: #e3f2fd; padding: 15px; border-radius: 5px;">
+        <h4 style="margin-top: 0; color: #1565c0;">📋 Parcelas</h4>
+        <p style="font-size: 24px; font-weight: bold; margin: 5px 0;">{{ quantidade }}</p>
+    </div>
+
+    <div style="background: #e8f5e9; padding: 15px; border-radius: 5px;">
+        <h4 style="margin-top: 0; color: #2e7d32;">💰 Valor Total</h4>
+        <p style="font-size: 24px; font-weight: bold; margin: 5px 0;">R$ {{ "%.2f"|format(valor_total) }}</p>
+    </div>
+
+    <div style="background: #f3e5f5; padding: 15px; border-radius: 5px;">
+        <h4 style="margin-top: 0; color: #7b1fa2;">👤 Responsáveis</h4>
+        <p style="font-size: 24px; font-weight: bold; margin: 5px 0;">{{ quantidade_responsaveis }}</p>
+    </div>
+</div>
+
+<!-- Lista por responsável -->
+<h3>📄 Notas a Emitir (agrupadas por responsável)</h3>
+
+{% for resp_id, dados in responsaveis.items() %}
+<div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #007bff;">
+    <h4 style="margin-top: 0;">
+        {{ dados.nome }}
+        <small style="color: #666; font-weight: normal;">
+            ({{ dados.cpf_cnpj }})
+        </small>
+    </h4>
+
+    <p>
+        <strong>{{ dados.parcelas|length }} parcela(s)</strong> |
+        Total: <strong>R$ {{ "%.2f"|format(dados.valor_total) }}</strong>
+    </p>
+
+    <table style="width: 100%; margin-top: 10px; font-size: 14px;">
+        <thead>
+            <tr>
+                <th>Parcela</th>
+                <th>Aluno</th>
+                <th>Vencimento</th>
+                <th>Valor</th>
+                <th>Contrato</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in dados.parcelas %}
+            <tr>
+                <td>#{{ p['numero_parcela'] }}</td>
+                <td>{{ p['aluno'] }}</td>
+                <td>{{ p['data_vencimento']|data_br }}</td>
+                <td>R$ {{ "%.2f"|format(p['valor_final']) }}</td>
+                <td>{{ p['numero_contrato'] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endfor %}
+
+<!-- Lista detalhada de todas as parcelas -->
+<details style="margin: 30px 0; padding: 15px; background: #f5f5f5; border-radius: 5px;">
+    <summary style="cursor: pointer; font-weight: bold;">📋 Ver lista completa de todas as {{ quantidade }} parcelas
+    </summary>
+
+    <div style="margin-top: 15px; overflow-x: auto;">
+        <table style="width: 100%;">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nº Parc.</th>
+                    <th>Aluno</th>
+                    <th>Responsável</th>
+                    <th>Vencimento</th>
+                    <th>Valor</th>
+                    <th>Contrato</th>
+                    <th>Excluir</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in parcelas %}
+                <tr>
+                    <td>{{ p['id'] }}</td>
+                    <td>{{ p['numero_parcela'] }}</td>
+                    <td>{{ p['aluno'] }}</td>
+                    <td>{{ p['responsavel'] }}</td>
+                    <td>{{ p['data_vencimento']|data_br }}</td>
+                    <td>R$ {{ "%.2f"|format(p['valor_final']) }}</td>
+                    <td>{{ p['numero_contrato'] }}</td>
+                    <td><!-- Na linha onde está o onclick do botão de excluir, mude: -->
+                    <button type="button" onclick="removerParcela({{ p['id'] }})"
+                        style="background: #dc3545; color: white; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;">
+                        ❌
+                    </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</details>
+
+<!-- Formulários de ação -->
+<div style="margin-top: 30px; padding: 20px; background: #e8f5e9; border-radius: 5px;">
+    <h3 style="margin-top: 0;">✅ Confirmar Emissão</h3>
+
+    <form id="formConfirmar" method="post" action="{{ url_for('gerar_nf_lote') }}">
+        {% for pid in parcelas_ids %}
+        <input type="hidden" name="parcelas_ids" value="{{ pid }}">
+        {% endfor %}
+        <input type="hidden" name="confirmacao" value="true">
+    </form>
+
+    <div style="display: flex; gap: 15px; margin-top: 15px;">
+        <button type="button" id="btnEmitir" onclick="confirmarEmissao()"
+            style="background: #28a745; color: white; padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold;">
+            ⚡ Emitir {{ quantidade }} Nota(s)
+        </button>
+
+        <button type="button" onclick="voltarParaSelecao()"
+            style="background: #6c757d; color: white; padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+            ← Voltar e Selecionar Outras
+        </button>
+
+        <button type="button" onclick="cancelar()"
+            style="background: #dc3545; color: white; padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+            ❌ Cancelar
+        </button>
+    </div>
+
+    <p style="margin-top: 15px; color: #666; font-size: 14px;">
+        <strong>Observação:</strong> Após a emissão, as notas serão geradas e uma planilha Excel será criada na pasta
+        "exports_nf".
+    </p>
+</div>
+
+<script>
+    // Remove uma parcela da lista
+    function removerParcela(parcelaId) {
+        if (!confirm('Remover esta parcela da lista?')) {
+            return;
+        }
+
+        // Remove do formulário
+        const form = document.getElementById('formConfirmar');
+        const inputs = form.querySelectorAll('input[value="' + parcelaId + '"]');
+        inputs.forEach(input => input.remove());
+
+        // Recarrega a página com as parcelas restantes
+        const parcelasRestantes = Array.from(form.querySelectorAll('input[name="parcelas_ids"]'))
+            .map(input => input.value);
+
+        if (parcelasRestantes.length === 0) {
+            alert('Todas as parcelas foram removidas. Voltando à seleção...');
+            window.location.href = "{{ url_for('notas_a_emitir') }}";
+            return;
+        }
+
+        // Cria form temporário para enviar as parcelas restantes
+        const tempForm = document.createElement('form');
+        tempForm.method = 'post';
+        tempForm.action = "{{ url_for('preview_lote') }}";
+
+        parcelasRestantes.forEach(pid => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'parcelas_ids';
+            input.value = pid;
+            tempForm.appendChild(input);
+        });
+
+        document.body.appendChild(tempForm);
+        tempForm.submit();
+    }
+
+    // Confirma a emissão - CORRIGIDO
+    function confirmarEmissao() {
+        // Usando dados do template diretamente
+        const quantidade = parseInt("{{ quantidade }}");
+        const valorTotal = parseFloat("{{ valor_total }}");
+
+        if (!confirm(`CONFIRMAR EMISSÃO DE ${quantidade} NOTA(S) FISCAL(IS)?\n\n` +
+            `Valor total: R$ ${valorTotal.toFixed(2)}\n\n` +
+            `Após confirmar, as notas serão geradas e não poderão ser alteradas.`)) {
+            return;
+        }
+
+        // Mostra loading
+        const btn = document.getElementById('btnEmitir');
+        btn.disabled = true;
+        btn.innerHTML = '⏳ Emitindo...';
+
+        // Submete o formulário
+        document.getElementById('formConfirmar').submit();
+    }
+
+    // Volta para seleção
+    function voltarParaSelecao() {
+        window.location.href = "{{ url_for('notas_a_emitir') }}";
+    }
+
+    // Cancela tudo
+    function cancelar() {
+        if (confirm('Cancelar a emissão em lote?\n\nTodas as seleções serão perdidas.')) {
+            window.location.href = "{{ url_for('notas_a_emitir') }}";
+        }
+    }
+
+    // Permite sair com confirmação
+    window.addEventListener('beforeunload', function (e) {
+        // Esta confirmação aparece apenas se o usuário tentar sair sem emitir
+        e.preventDefault();
+        e.returnValue = 'As seleções de parcelas serão perdidas. Tem certeza que deseja sair?';
+    });
+</script>
+
+<style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 10px 0;
+    }
+
+    th {
+        background: #343a40;
+        color: white;
+        padding: 10px;
+        text-align: left;
+        font-weight: bold;
+    }
+
+    td {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+    }
+
+    tr:hover {
+        background-color: #f9f9f9;
+    }
+
+    button {
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    button:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}

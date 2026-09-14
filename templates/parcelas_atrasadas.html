@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Parcelas atrasadas - Financeiro Escola{% endblock %}
+
+{% block content %}
+<h2>Parcelas atrasadas</h2>
+<p style="margin-bottom:0.5rem;">
+    <a href="{{ url_for('export_parcelas_atrasadas') }}">Baixar CSV das parcelas atrasadas</a>
+</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID parcela</th>
+            <th>Aluno</th>
+            <th>Responsável</th>
+            <th>Nº parcela</th>
+            <th>Valor</th>
+            <th>Vencimento</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for p in parcelas %}
+        <tr>
+            <td>{{ p.id }}</td>
+            <td>{{ p.aluno }}</td>
+            <td>{{ p.responsavel }}</td>
+            <td>{{ p.numero_parcela }}</td>
+            <td>R$ {{ "%.2f"|format(p.valor_final) }}</td>
+            <td>{{ p.data_vencimento }}</td>
+            <td>
+                <span class="status-tag status-atrasada">Atrasada</span>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

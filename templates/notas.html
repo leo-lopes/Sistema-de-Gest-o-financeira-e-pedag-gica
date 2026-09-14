@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Notas fiscais emitidas - Financeiro Escola{% endblock %}
+
+{% block content %}
+<h2>Notas fiscais emitidas</h2>
+
+{% if notas %}
+<table>
+    <thead>
+        <tr>
+            <th>ID NF</th>
+            <th>Número</th>
+            <th>Aluno</th>
+            <th>Responsável</th>
+            <th>Nº parcela</th>
+            <th>Valor</th>
+            <th>Data emissão</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for n in notas %}
+        <tr>
+            <td>{{ n.id }}</td>
+
+            <!-- Número da NF com link -->
+            <td>
+                {% if n.numero_nf %}
+                    <a href="{{ url_for('detalhe_nota', nota_id=n.id) }}">
+                        {{ n.numero_nf }}
+                    </a>
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+
+            <!-- Dados que podem estar ausentes após exclusão -->
+            <td>{{ n.aluno or '-' }}</td>
+            <td>{{ n.responsavel or '-' }}</td>
+            <td>{{ n.numero_parcela or '-' }}</td>
+
+            <td>R$ {{ "%.2f"|format(n.valor or 0) }}</td>
+
+            <!-- Data formatada -->
+            <td>{{ n.data_emissao|data_br or '-' }}</td>
+
+            <td>{{ n.status or 'emitida' }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>Não há notas fiscais emitidas registradas.</p>
+{% endif %}
+{% endblock %}

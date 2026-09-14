@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}Backup do Sistema{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <h1>Backup do Sistema</h1>
+    <p>Gerencie os backups do banco de dados</p>
+</div>
+
+<!-- Cards de resumo -->
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px,1fr)); gap:16px; margin-bottom:28px;">
+
+    <div style="background:var(--bg-surface); border:0.5px solid var(--accent-border); border-left:3px solid var(--accent); border-radius:10px; padding:20px;">
+        <p style="font-size:11px; color:var(--accent-text); text-transform:uppercase; letter-spacing:0.5px; font-weight:500; margin:0 0 10px;">Banco atual</p>
+        <p style="font-size:15px; font-weight:500; color:var(--text-primary); margin:0 0 6px;">{{ database_size_fmt }}</p>
+        <p style="font-size:12px; color:var(--text-muted); margin:0;">Última modificação: {{ database_mtime }}</p>
+    </div>
+
+    <div style="background:var(--bg-surface); border:0.5px solid var(--border); border-left:3px solid var(--success); border-radius:10px; padding:20px;">
+        <p style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; font-weight:500; margin:0 0 10px;">Backups disponíveis</p>
+        <p style="font-size:28px; font-weight:500; color:var(--success); margin:0 0 4px;">{{ total_backups }}</p>
+        <p style="font-size:12px; color:var(--text-muted); margin:0;">{{ backups_hoje }} hoje · Total: {{ total_size }}</p>
+    </div>
+
+    <div style="background:var(--bg-surface); border:0.5px solid var(--border); border-left:3px solid var(--warning); border-radius:10px; padding:20px;">
+        <p style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; font-weight:500; margin:0 0 14px;">Ações</p>
+        <button id="btnCriarBackup" onclick="criarBackup()" class="btn btn-primary" style="width:100%; justify-content:center;">
+            Criar backup agora
+        </button>
+        <div id="backupStatus" style="margin-top:10px; display:none; font-size:13px;"></div>
+    </div>
+
+</div>
+
+<!-- Lista de backups -->
+<p style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; font-weight:500; margin:0 0 12px;">Backups disponíveis</p>
+
+{% if backups %}
+<div class="table-card">
+    <table>
+        <thead>
+            <tr>
+                <th>Arquivo</th>
+                <th>Data/Hora</th>
+                <th>Tamanho</th>
+                <th>Idade</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for b in backups %}
+            <tr>
+                <td class="td-strong">
+                    {{ b.nome }}
+                    {% if b.idade_dias == 0 %}
+                    <span class="badge badge-success" style="margin-left:6px;">Hoje</span>
+                    {% elif b.idade_dias <= 7 %}
+                    <span class="badge badge-warning" style="margin-left:6px;">Recente</span>
+                    {% endif %}
+                </td>
+                <td class="td-secondary">{{ b.data }}</td>
+                <td class="td-secondary">{{ b.tamanho_formatado }}</td>
+                <td class="td-secondary">
+                    {% if b.idade_dias == 0 %}Hoje
+                    {% elif b.idade_dias == 1 %}1 dia
+                    {% else %}{{ b.idade_dias }} dias{% endif %}
+                </td>
+                <td>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <a href="{{ url_for('download_backup', nome=b.nome) }}" class="btn btn-sm" style="color:var(--accent-text); border-color:var(--accent-border);">
+                            Download
+                        </a>
+                        <button onclick="restaurarBackup('{{ b.nome }}')" class="btn btn-sm" style="color:var(--warning); border-color:var(--warning-border);">
+                            Restaurar
+                        </button>
+                        <button onclick="excluirBackup('{{ b.nome }}')" class="btn btn-sm btn-danger">
+                            Excluir
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div style="padding:32px; text-align:center; background:var(--bg-surface); border:0.5px solid var(--border); border-radius:10px;">
+    <p style="color:var(--text-muted); font-size:13px; margin:0 0 14px;">Nenhum backup encontrado.</p>
+    <button onclick="criarBackup()" class="btn btn-primary">Criar primeiro backup</button>
+</div>
+{% endif %}
+
+<!-- Informações técnicas -->
+<details style="margin-top:20px; background:var(--bg-surface); border:0.5px solid var(--border); border-radius:10px; padding:16px;">
+    <summary style="cursor:pointer; font-size:13px; font-weight:500; color:var(--text-secondary);">Informações técnicas</summary>
+    <div style="margin-top:12px; font-size:13px; color:var(--text-secondary); display:grid; gap:6px;">
+        <p style="margin:0;"><strong style="color:var(--text-primary);">Local dos backups:</strong> {{ backup_dir }}</p>
+        <p style="margin:0;"><strong style="color:var(--text-primary);">Retenção:</strong> 7 dias</p>
+        <p style="margin:0;"><strong style="color:var(--text-primary);">Backup automático:</strong> A cada 24 horas</p>
+        <p style="margin:0;"><strong style="color:var(--text-primary);">Tamanho do banco:</strong> {{ database_size }} bytes</p>
+        <p style="margin:0;"><strong style="color:var(--text-primary);">Última verificação:</strong> {{ agora }}</p>
+    </div>
+</details>
+
+<script>
+function criarBackup() {
+    const btn = document.getElementById('btnCriarBackup');
+    const statusDiv = document.getElementById('backupStatus');
+    btn.disabled = true;
+    btn.textContent = 'Criando...';
+    statusDiv.style.display = 'block';
+    statusDiv.style.color = 'var(--warning)';
+    statusDiv.textContent = 'Criando backup, aguarde...';
+
+    fetch('/admin/backup/criar', { method: 'POST', headers: {'Content-Type':'application/json'} })
+        .then(r => r.json())
+        .then(data => {
+            if (data.sucesso) {
+                statusDiv.style.color = 'var(--success)';
+                statusDiv.textContent = data.mensagem;
+                setTimeout(() => window.location.reload(), 2000);
+            } else {
+                statusDiv.style.color = 'var(--danger)';
+                statusDiv.textContent = data.mensagem;
+            }
+            btn.disabled = false;
+            btn.textContent = 'Criar backup agora';
+        })
+        .catch(e => {
+            statusDiv.style.color = 'var(--danger)';
+            statusDiv.textContent = 'Erro: ' + e;
+            btn.disabled = false;
+            btn.textContent = 'Criar backup agora';
+        });
+}
+
+function restaurarBackup(nome) {
+    if (!confirm('ATENÇÃO: restaurar "' + nome + '" substituirá o banco atual.\n\nDeseja continuar?')) return;
+    if (!confirm('CONFIRMAÇÃO FINAL: Esta ação não pode ser desfeita. Continuar?')) return;
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/admin/backup/restaurar';
+    const inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'arquivo'; inp.value = nome;
+    form.appendChild(inp);
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function excluirBackup(nome) {
+    if (!confirm('Excluir "' + nome + '"? Esta ação não pode ser desfeita.')) return;
+    fetch('/admin/backup/excluir', {
+        method: 'POST',
+        headers: {'Content-Type':'application/x-www-form-urlencoded'},
+        body: 'arquivo=' + encodeURIComponent(nome)
+    })
+    .then(r => r.json())
+    .then(data => {
+        alert(data.sucesso ? data.mensagem : 'Erro: ' + data.mensagem);
+        if (data.sucesso) window.location.reload();
+    })
+    .catch(e => alert('Erro: ' + e));
+}
+
+setTimeout(() => window.location.reload(), 5 * 60 * 1000);
+</script>
+{% endblock %}

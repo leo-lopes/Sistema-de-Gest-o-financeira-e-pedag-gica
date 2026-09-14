@@ -1,0 +1,9 @@
+*.db
+*.sqlite
+*.sql
+backups/
+exports_nf/
+*.xlsx
+*.bat
+__pycache__/
+*.pyc

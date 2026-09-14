@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Editar responsável{% endblock %}
+
+{% block content %}
+<h2>Editar responsável</h2>
+
+{% if erro %}
+<div style="grid-column:1/-1; padding:8px; margin:8px 0; background:#ffdddd; border:1px solid #cc6666;">
+    {{ erro }}
+</div>
+{% endif %}
+
+<form method="post" class="form-grid">
+    <label>
+        Nome<br>
+        <input type="text" name="nome" value="{{ r.nome }}" required>
+    </label>
+
+    <label>
+        Telefone<br>
+        <input type="text" name="telefone" value="{{ r.telefone or '' }}">
+    </label>
+
+    <label>
+        Email<br>
+        <input type="email" name="email" value="{{ r.email or '' }}">
+    </label>
+
+    <label>
+        CPF/CNPJ<br>
+        <input type="text" name="cpf_cnpj" value="{{ r.cpf_cnpj or '' }}">
+    </label>
+
+    <label>
+        Rua<br>
+        <input type="text" name="endereco_rua" value="{{ r.endereco_rua or '' }}">
+    </label>
+
+    <label>
+        Número<br>
+        <input type="text" name="endereco_numero" value="{{ r.endereco_numero or '' }}">
+    </label>
+
+    <label>
+        Complemento<br>
+        <input type="text" name="endereco_complemento" value="{{ r.endereco_complemento or '' }}">
+    </label>
+
+    <label>
+        Bairro<br>
+        <input type="text" name="endereco_bairro" value="{{ r.endereco_bairro or '' }}">
+    </label>
+
+    <label>
+        Cidade<br>
+        <input type="text" name="endereco_cidade" value="{{ r.endereco_cidade or '' }}">
+    </label>
+
+    <label>
+        UF<br>
+        <input type="text" name="endereco_uf" maxlength="2"
+               value="{{ r.endereco_uf or '' }}" style="text-transform:uppercase;">
+    </label>
+
+    <label>
+        CEP<br>
+        <input type="text" name="endereco_cep" value="{{ r.endereco_cep or '' }}">
+    </label>
+
+    <div style="grid-column: 1 / -1; margin-top: 1rem;">
+        <button type="submit">Salvar alterações</button>
+    </div>
+</form>
+{% endblock %}

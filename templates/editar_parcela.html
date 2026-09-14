@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Editar parcela{% endblock %}
+
+{% block content %}
+<h2>Editar parcela {{ parcela.numero_parcela }}</h2>
+
+<form method="post">
+    <label>
+        Valor:
+        <input type="number" step="0.01" name="valor_final" value="{{ parcela.valor_final }}" required>
+    </label>
+
+    <br><br>
+
+    <label>
+        Vencimento:
+        <input type="date" name="data_vencimento" value="{{ parcela.data_vencimento }}" required>
+    </label>
+
+    <br><br>
+
+    <button type="submit">Salvar alterações</button>
+    <a href="{{ url_for('detalhe_contrato', contrato_id=parcela.contrato_id) }}">
+        Cancelar
+    </a>
+</form>
+{% endblock %}

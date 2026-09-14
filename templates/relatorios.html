@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Relatórios{% endblock %}
+{% block content %}
+
+<div style="max-width:600px;">
+    <div class="page-header">
+        <h1>Relatórios</h1>
+        <p>Gere relatórios financeiros por período em PDF ou Excel.</p>
+    </div>
+
+    <!-- Card de geração -->
+    <div style="background:#fff;border:0.5px solid #e2e4e9;border-radius:12px;padding:28px;">
+
+        <p style="font-size:11px;color:#9099a8;text-transform:uppercase;letter-spacing:0.5px;font-weight:500;margin:0 0 20px;">
+            Selecione o período e o formato
+        </p>
+
+        <form method="get" action="{{ url_for('gerar_relatorio') }}">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+                <div class="field">
+                    <span>Data inicial</span>
+                    <input type="date" name="de" value="{{ de_default }}" required>
+                </div>
+                <div class="field">
+                    <span>Data final</span>
+                    <input type="date" name="ate" value="{{ ate_default }}" required>
+                </div>
+            </div>
+
+            <!-- Atalhos de período -->
+            <div style="margin-bottom:20px;">
+                <p style="font-size:11px;color:#9099a8;margin:0 0 8px;font-weight:500;">Atalhos</p>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button type="button" class="btn btn-sm" onclick="setPeriodo('mes_atual')">Mês atual</button>
+                    <button type="button" class="btn btn-sm" onclick="setPeriodo('mes_anterior')">Mês anterior</button>
+                    <button type="button" class="btn btn-sm" onclick="setPeriodo('trimestre')">Último trimestre</button>
+                    <button type="button" class="btn btn-sm" onclick="setPeriodo('semestre')">Último semestre</button>
+                    <button type="button" class="btn btn-sm" onclick="setPeriodo('ano')">Este ano</button>
+                </div>
+            </div>
+
+            <!-- Seções incluídas -->
+            <div style="background:#f4f5f7;border-radius:8px;padding:14px 16px;margin-bottom:24px;">
+                <p style="font-size:11px;color:#9099a8;margin:0 0 10px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;">
+                    Seções incluídas
+                </p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                    {% for s in [
+                        ('Resumo executivo', True),
+                        ('Pagamentos recebidos', True),
+                        ('Inadimplência', True),
+                        ('Parcelas em aberto', True),
+                        ('Notas fiscais emitidas', True),
+                        ('Situação de rematrículas', True),
+                    ] %}
+                    <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#1a1d23;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                             stroke="#1a7f4e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        {{ s[0] }}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Botões de formato -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <button type="submit" name="formato" value="pdf"
+                    style="padding:12px;border-radius:8px;border:0.5px solid #3b5bdb;
+                           background:#eef2ff;color:#3b5bdb;font-size:14px;font-weight:500;
+                           cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+                           transition:background 0.12s;"
+                    onmouseover="this.style.background='#dbe4ff'"
+                    onmouseout="this.style.background='#eef2ff'">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                         stroke="#3b5bdb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    Baixar PDF
+                </button>
+                <button type="submit" name="formato" value="excel"
+                    style="padding:12px;border-radius:8px;border:0.5px solid #1a7f4e;
+                           background:#f0fdf7;color:#1a7f4e;font-size:14px;font-weight:500;
+                           cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+                           transition:background 0.12s;"
+                    onmouseover="this.style.background='#dcfce7'"
+                    onmouseout="this.style.background='#f0fdf7'">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                         stroke="#1a7f4e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <line x1="3" y1="9" x2="21" y2="9"/>
+                        <line x1="3" y1="15" x2="21" y2="15"/>
+                        <line x1="9" y1="3" x2="9" y2="21"/>
+                    </svg>
+                    Baixar Excel
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Nota informativa -->
+    <div style="margin-top:12px;padding:12px 16px;background:#f4f5f7;border-radius:8px;
+                font-size:12px;color:#9099a8;line-height:1.5;">
+        Os dados de <strong style="color:#1a1d23;">rematrículas</strong> sempre refletem a situação atual,
+        independente do período financeiro selecionado.
+        Os demais dados (pagamentos, notas, inadimplência) são filtrados pelo período escolhido.
+    </div>
+</div>
+
+<script>
+const inp_de  = document.querySelector('input[name="de"]');
+const inp_ate = document.querySelector('input[name="ate"]');
+
+function setPeriodo(tipo) {
+    const hoje = new Date();
+    let de, ate;
+    const y = hoje.getFullYear();
+    const m = hoje.getMonth(); // 0-indexed
+
+    const lastDay = (year, month) => new Date(year, month+1, 0).getDate();
+
+    if (tipo === 'mes_atual') {
+        de  = `${y}-${String(m+1).padStart(2,'0')}-01`;
+        ate = `${y}-${String(m+1).padStart(2,'0')}-${String(lastDay(y,m)).padStart(2,'0')}`;
+    } else if (tipo === 'mes_anterior') {
+        const mp = m === 0 ? 11 : m-1;
+        const yp = m === 0 ? y-1 : y;
+        de  = `${yp}-${String(mp+1).padStart(2,'0')}-01`;
+        ate = `${yp}-${String(mp+1).padStart(2,'0')}-${String(lastDay(yp,mp)).padStart(2,'0')}`;
+    } else if (tipo === 'trimestre') {
+        const d3m = new Date(hoje);
+        d3m.setMonth(d3m.getMonth() - 2);
+        d3m.setDate(1);
+        de  = d3m.toISOString().split('T')[0];
+        ate = `${y}-${String(m+1).padStart(2,'0')}-${String(lastDay(y,m)).padStart(2,'0')}`;
+    } else if (tipo === 'semestre') {
+        const d6m = new Date(hoje);
+        d6m.setMonth(d6m.getMonth() - 5);
+        d6m.setDate(1);
+        de  = d6m.toISOString().split('T')[0];
+        ate = `${y}-${String(m+1).padStart(2,'0')}-${String(lastDay(y,m)).padStart(2,'0')}`;
+    } else if (tipo === 'ano') {
+        de  = `${y}-01-01`;
+        ate = `${y}-12-31`;
+    }
+    inp_de.value  = de;
+    inp_ate.value = ate;
+}
+</script>
+{% endblock %}

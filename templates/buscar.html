@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}Busca{% endblock %}
+
+{% block content %}
+<h2>🔍 Busca Rápida</h2>
+
+{% if erro_tecnico %}
+<div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 10px 0; border-radius: 4px;">
+    <small>⚠️ Modo de busca limitado devido a erro técnico: {{ erro_tecnico }}</small>
+</div>
+{% endif %}
+
+<form method="get" action="{{ url_for('buscar') }}" style="margin: 20px 0;">
+    <input type="text" name="q" value="{{ termo }}" placeholder="Digite nome, número do contrato, telefone..."
+        style="width: 70%; padding: 10px; font-size: 16px;">
+    <button type="submit" style="padding: 10px 20px; font-size: 16px;">
+        Buscar
+    </button>
+</form>
+
+{% if termo %}
+{% if resultados %}
+<h3>Resultados para "{{ termo }}" ({{ resultados|length }})</h3>
+
+<table>
+    <thead>
+        <tr>
+            <th>Aluno</th>
+            <th>Responsável</th>
+            <th>Contrato</th>
+            <th>Status</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for r in resultados %}
+        <tr>
+            <td>{{ r.aluno }}</td>
+            <td>{{ r.responsavel }}</td>
+            <td>
+                {% if r.numero_contrato %}
+                <strong>{{ r.numero_contrato }}</strong>
+                {% else %}
+                <em style="color: #999;">- não encontrado -</em>
+                {% endif %}
+            </td>
+            <td>
+                {% if r.status_contrato == 'vencido' %}
+                <span style="color: #d32f2f; font-weight: bold;">● Vencido</span>
+                {% elif r.status_contrato == 'a_vencer' %}
+                <span style="color: #f57c00; font-weight: bold;">● A vencer</span>
+                {% elif r.status_contrato == 'ativo' %}
+                <span style="color: #388e3c; font-weight: bold;">● Ativo</span>
+                {% else %}
+                <span style="color: #757575;">● Não informado</span>
+                {% endif %}
+                {% if r.data_fim %}
+                <br><small>({{ r.data_fim|data_br }})</small>
+                {% endif %}
+            </td>
+            <td>
+                <a href="{{ url_for('detalhe_aluno', aluno_id=r.aluno_id) }}">👤 Aluno</a>
+                {% if r.contrato_id %}
+                | <a href="{{ url_for('detalhe_contrato', contrato_id=r.contrato_id) }}">📄 Contrato</a>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% else %}
+<div style="background: #f8f9fa; padding: 20px; border-radius: 5px; margin-top: 20px;">
+    <p style="color: #666;">🔍 Nenhum resultado encontrado para "<strong>{{ termo }}</strong>"</p>
+
+    <div style="margin-top: 15px;">
+        <p><strong>Sugestões:</strong></p>
+        <ul style="color: #666;">
+            <li>Verifique a ortografia</li>
+            <li>Tente termos mais gerais</li>
+            <li>Busque apenas por parte do nome</li>
+        </ul>
+    </div>
+</div>
+{% endif %}
+
+<!-- Debug: mostra o que está sendo buscado -->
+<div style="margin-top: 30px; padding: 10px; background: #f5f5f5; font-size: 12px; color: #666;">
+    <details>
+        <summary>🔧 Informações técnicas da busca</summary>
+        <p><strong>Termo buscado:</strong> "{{ termo }}"</p>
+        <p><strong>Resultados:</strong> {{ resultados|length }} encontrados</p>
+        {% if resultados %}
+        <p><strong>Primeiro resultado:</strong>
+            Aluno: {{ resultados[0].aluno }},
+            Contrato: {{ resultados[0].numero_contrato or 'não informado' }}
+        </p>
+        {% endif %}
+    </details>
+</div>
+
+{% else %}
+<div style="background: #f5f5f5; padding: 20px; border-radius: 5px; margin-top: 30px;">
+    <h3>💡 Como usar a busca</h3>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+        <div>
+            <h4>📋 O que buscar:</h4>
+            <ul>
+                <li><strong>Nome do aluno</strong> (ex: "João", "Maria")</li>
+                <li><strong>Nome do responsável</strong> (ex: "Silva", "Santos")</li>
+                <li><strong>Número do contrato</strong> (ex: "CT-1", "51")</li>
+                <li><strong>Parte do telefone</strong> (ex: "9999", "8888")</li>
+            </ul>
+        </div>
+
+        <div>
+            <h4>🎯 Dicas:</h4>
+            <ul>
+                <li>Busca não diferencia maiúsculas/minúsculas</li>
+                <li>Use partes dos nomes</li>
+                <li>Pode buscar por número parcial do contrato</li>
+                <li>Resultados limitados a 50 itens</li>
+            </ul>
+        </div>
+    </div>
+
+    <div style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 4px;">
+        <h4>🧪 Teste rápido:</h4>
+        <p>Tente buscar por:</p>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <a href="{{ url_for('buscar') }}?q=CT-1"
+                style="background: #4caf50; color: white; padding: 5px 10px; border-radius: 3px; text-decoration: none;">CT-1</a>
+            <a href="{{ url_for('buscar') }}?q=CT-2"
+                style="background: #4caf50; color: white; padding: 5px 10px; border-radius: 3px; text-decoration: none;">CT-2</a>
+            <a href="{{ url_for('buscar') }}?q=CT-3"
+                style="background: #4caf50; color: white; padding: 5px 10px; border-radius: 3px; text-decoration: none;">CT-3</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+    th {
+        background: #2c3e50;
+        color: white;
+        padding: 12px;
+        text-align: left;
+        border-bottom: 3px solid #34495e;
+    }
+
+    td {
+        padding: 12px;
+        border-bottom: 1px solid #ecf0f1;
+    }
+
+    tr:hover {
+        background: #f8f9fa;
+    }
+
+    a {
+        color: #3498db;
+        text-decoration: none;
+    }
+
+    a:hover {
+        text-decoration: underline;
+    }
+
+    details {
+        margin-top: 10px;
+    }
+
+    summary {
+        cursor: pointer;
+        color: #7f8c8d;
+    }
+</style>
+{% endblock %}

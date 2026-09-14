@@ -1,0 +1,629 @@
+{% extends "base.html" %}
+{% block title %}Pagamentos{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <h1>Pagamentos</h1>
+    <p>Registro e acompanhamento de pagamentos de parcelas</p>
+</div>
+
+<!-- Abas -->
+<div style="display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 0.5px solid #e2e4e9; padding-bottom: 0;">
+    <a href="{{ url_for('pagamentos', aba='mes') }}"
+       style="font-size: 13px; padding: 8px 16px; text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -0.5px;
+              {% if aba == 'mes' %}color: #3b5bdb; border-bottom-color: #3b5bdb; font-weight: 500;{% else %}color: #6b7280;{% endif %}">
+        Parcelas por período
+    </a>
+    <a href="{{ url_for('pagamentos', aba='busca') }}"
+       style="font-size: 13px; padding: 8px 16px; text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -0.5px;
+              {% if aba == 'busca' %}color: #3b5bdb; border-bottom-color: #3b5bdb; font-weight: 500;{% else %}color: #6b7280;{% endif %}">
+        Busca por nome
+    </a>
+</div>
+
+{% if aba == 'mes' %}
+
+<!-- Filtros -->
+<div class="filter-bar">
+    <form method="get" action="{{ url_for('pagamentos') }}" style="display:contents;">
+        <input type="hidden" name="aba" value="mes">
+        <div class="filter-group">
+            <span class="filter-label">De</span>
+            <input type="date" name="de" value="{{ de }}">
+        </div>
+        <div class="filter-group">
+            <span class="filter-label">Até</span>
+            <input type="date" name="ate" value="{{ ate }}">
+        </div>
+        <div class="filter-group">
+            <span class="filter-label">Status</span>
+            <select name="status_filtro">
+                <option value="" {% if not status_filtro %}selected{% endif %}>Todos</option>
+                <option value="pendente" {% if status_filtro == 'pendente' %}selected{% endif %}>Pendente</option>
+                <option value="pago"     {% if status_filtro == 'pago'     %}selected{% endif %}>Pago</option>
+                <option value="atrasado" {% if status_filtro == 'atrasado' %}selected{% endif %}>Atrasado</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <span class="filter-label">Por página</span>
+            <select name="por_pagina">
+                {% for n in [20, 50, 100, 200] %}
+                <option value="{{ n }}" {% if por_pagina == n %}selected{% endif %}>{{ n }}</option>
+                {% endfor %}
+                <option value="99999" {% if por_pagina == 99999 %}selected{% endif %}>Todas</option>
+            </select>
+        </div>
+        <div style="display:flex; gap:8px; align-items:flex-end;">
+            <button type="submit" class="btn btn-primary">Filtrar</button>
+            <a href="{{ url_for('pagamentos', aba='mes') }}" class="btn" style="color:#6b7280;">Limpar</a>
+        </div>
+    </form>
+</div>
+
+{% if parcelas %}
+<!-- Métricas -->
+<div class="metric-grid" style="grid-template-columns: repeat(6, 1fr);">
+    <div class="metric-card">
+        <p class="metric-label">Total</p>
+        <p class="metric-value" style="font-size:20px;">{{ total_registros }}</p>
+    </div>
+    <div class="metric-card success">
+        <p class="metric-label">Pagas</p>
+        <p class="metric-value" style="font-size:20px;">{{ total_pagas }}</p>
+    </div>
+    <div class="metric-card warning">
+        <p class="metric-label">Pendentes</p>
+        <p class="metric-value" style="font-size:20px;">{{ total_pendentes }}</p>
+    </div>
+    <div class="metric-card danger">
+        <p class="metric-label">Atrasadas</p>
+        <p class="metric-value" style="font-size:20px;">{{ total_atrasadas }}</p>
+    </div>
+    <div class="metric-card success" style="grid-column: span 1;">
+        <p class="metric-label">Recebido</p>
+        <p class="metric-value" style="font-size:16px;">R$ {{ "%.2f"|format(valor_recebido) }}</p>
+    </div>
+    <div class="metric-card">
+        <p class="metric-label">Em aberto</p>
+        <p class="metric-value" style="font-size:16px;">R$ {{ "%.2f"|format(valor_aberto) }}</p>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="table-card">
+    <table>
+        <thead>
+            <tr>
+                <th>Parc.</th>
+                <th>Aluno</th>
+                <th>Responsável</th>
+                <th>Contrato</th>
+                <th style="text-align:right;">Valor</th>
+                <th>Vencimento</th>
+                <th>Status</th>
+                <th>Canal</th>
+                <th>Pago em</th>
+                <th style="width:90px;"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in parcelas %}
+            <tr>
+                <td class="td-secondary">{{ p.numero_parcela }}</td>
+                <td class="td-strong">{{ p.aluno }}</td>
+                <td class="td-secondary">{{ p.responsavel }}</td>
+                <td class="td-secondary">{{ p.numero_contrato }}</td>
+                <td style="text-align:right; font-weight:500;">R$ {{ "%.2f"|format(p.valor_final) }}</td>
+                <td class="td-secondary">{{ p.data_vencimento|data_br }}</td>
+                <td>
+                    {% if p.status_pagamento == 'pago' %}
+                        <span class="badge badge-success">Pago</span>
+                    {% elif p.status_pagamento == 'atrasado' %}
+                        <span class="badge badge-danger">Atrasado</span>
+                    {% else %}
+                        <span class="badge badge-info">Pendente</span>
+                    {% endif %}
+                </td>
+                <td class="td-secondary" style="font-size:12px;">
+                    {{ p.canal_pagamento|upper if p.canal_pagamento else '—' }}
+                </td>
+                <td class="td-secondary">
+                    {{ p.pago_em|data_br if p.pago_em else '—' }}
+                </td>
+                <td style="text-align:right;">
+                    {% if p.status_pagamento == 'pago' %}
+                        <button class="btn btn-sm" onclick="abrirDetalhes({{ p.id }}, '{{ p.aluno }}', '{{ p.numero_parcela }}', '{{ p.valor_final }}', '{{ p.pago_em }}', '{{ p.canal_pagamento }}', '{{ p.valor_pago }}', '{{ p.observacao_pagamento or '' }}', '{{ p.registrado_por or '' }}')">
+                            Ver
+                        </button>
+                    {% else %}
+                        <button class="btn btn-sm btn-primary" onclick="abrirRegistro({{ p.id }}, '{{ p.aluno }}', '{{ p.numero_parcela }}', '{{ p.valor_final }}')">
+                            Registrar
+                        </button>
+                        <button class="btn btn-sm" onclick="abrirAlterarStatus({{ p.id }}, '{{ p.aluno }}', '{{ p.status_pagamento }}')" style="margin-top:3px;">
+                            Editar
+                        </button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% if total_pages > 1 %}
+    <div class="pagination">
+        <span>Mostrando página {{ page }} de {{ total_pages }}</span>
+        <div class="pagination-pages">
+            {% if page > 1 %}
+            <a href="{{ url_for('pagamentos', aba='mes', page=page-1, de=de, ate=ate, status_filtro=status_filtro, por_pagina=por_pagina) }}">Anterior</a>
+            {% endif %}
+            <span class="pg-ativo">{{ page }}</span>
+            {% if page < total_pages %}
+            <a href="{{ url_for('pagamentos', aba='mes', page=page+1, de=de, ate=ate, status_filtro=status_filtro, por_pagina=por_pagina) }}">Próxima</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<p style="color:#9099a8; margin-top:20px;">Nenhuma parcela encontrada para o período selecionado.</p>
+{% endif %}
+
+{% elif aba == 'busca' %}
+
+<div class="filter-bar">
+    <form method="get" action="{{ url_for('pagamentos') }}" style="display:contents;">
+        <input type="hidden" name="aba" value="busca">
+        <div class="filter-group" style="flex:1; min-width:240px;">
+            <span class="filter-label">Nome do aluno ou responsável</span>
+            <input type="text" name="q" value="{{ q }}" placeholder="Digite o nome...">
+        </div>
+        <div class="filter-group">
+            <span class="filter-label">Por página</span>
+            <select name="por_pagina">
+                {% for n in [20, 50, 100, 200] %}
+                <option value="{{ n }}" {% if por_pagina == n %}selected{% endif %}>{{ n }}</option>
+                {% endfor %}
+                <option value="99999" {% if por_pagina == 99999 %}selected{% endif %}>Todas</option>
+            </select>
+        </div>
+        <div style="display:flex; gap:8px; align-items:flex-end;">
+            <button type="submit" class="btn btn-primary">Buscar</button>
+            <a href="{{ url_for('pagamentos', aba='busca') }}" class="btn" style="color:#6b7280;">Limpar</a>
+        </div>
+    </form>
+</div>
+
+{% if q and resultados is defined %}
+    {% if resultados %}
+
+    <!-- Barra de ação em lote -->
+    <div style="background:#fff;border:0.5px solid #e2e4e9;border-radius:10px;padding:12px 16px;
+                margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:#6b7280;">
+                <input type="checkbox" id="selectAllBusca" onchange="toggleTodosBusca(this)"
+                       style="accent-color:#3b5bdb;width:14px;height:14px;">
+                Selecionar pendentes
+            </label>
+            <span id="contadorBusca" style="font-size:12px;color:#9099a8;">0 selecionadas</span>
+        </div>
+        <button id="btnLoteBusca" class="btn btn-primary" onclick="openModal('modalLote')" disabled>
+            Registrar selecionadas
+        </button>
+    </div>
+
+    <p style="font-size:13px; color:#6b7280; margin-bottom:8px;">
+        {{ resultados|length }} parcela(s) para "<strong style="color:#1a1d23;">{{ q }}</strong>"
+    </p>
+
+    <div class="table-card">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:32px;"></th>
+                    <th>Parc.</th><th>Aluno</th><th>Contrato</th>
+                    <th style="text-align:right;">Valor</th><th>Vencimento</th>
+                    <th>Status</th><th>Canal</th><th>Pago em</th>
+                    <th style="width:80px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in resultados %}
+                <tr>
+                    <td>
+                        {% if p.status_pagamento != 'pago' %}
+                        <input type="checkbox" class="cb-busca"
+                               data-id="{{ p.id }}"
+                               data-valor="{{ p.valor_final }}"
+                               data-parc="{{ p.numero_parcela }}"
+                               data-aluno="{{ p.aluno }}"
+                               onchange="atualizarContadorBusca()"
+                               style="accent-color:#3b5bdb;width:14px;height:14px;">
+                        {% endif %}
+                    </td>
+                    <td class="td-secondary">{{ p.numero_parcela }}</td>
+                    <td class="td-strong">{{ p.aluno }}</td>
+                    <td class="td-secondary">{{ p.numero_contrato }}</td>
+                    <td style="text-align:right; font-weight:500;">R$ {{ "%.2f"|format(p.valor_final) }}</td>
+                    <td class="td-secondary">{{ p.data_vencimento|data_br }}</td>
+                    <td>
+                        {% if p.status_pagamento == 'pago' %}
+                            <span class="badge badge-success">Pago</span>
+                        {% elif p.status_pagamento == 'atrasado' %}
+                            <span class="badge badge-danger">Atrasado</span>
+                        {% else %}
+                            <span class="badge badge-info">Pendente</span>
+                        {% endif %}
+                    </td>
+                    <td class="td-secondary" style="font-size:12px;">{{ p.canal_pagamento|upper if p.canal_pagamento else '—' }}</td>
+                    <td class="td-secondary">{{ p.pago_em|data_br if p.pago_em else '—' }}</td>
+                    <td style="text-align:right;">
+                        {% if p.status_pagamento == 'pago' %}
+                            <button class="btn btn-sm" onclick="abrirDetalhes({{ p.id }}, '{{ p.aluno }}', '{{ p.numero_parcela }}', '{{ p.valor_final }}', '{{ p.pago_em }}', '{{ p.canal_pagamento }}', '{{ p.valor_pago }}', '{{ p.observacao_pagamento or '' }}', '{{ p.registrado_por or '' }}')">Ver</button>
+                        {% else %}
+                            <button class="btn btn-sm btn-primary" onclick="abrirRegistro({{ p.id }}, '{{ p.aluno }}', '{{ p.numero_parcela }}', '{{ p.valor_final }}')">Registrar</button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% else %}
+    <p style="color:#9099a8;">Nenhum resultado para "<strong>{{ q }}</strong>".</p>
+    {% endif %}
+{% endif %}
+{% endif %}
+
+<!-- Modal: registrar lote (busca) -->
+<div id="modalLote" class="modal-overlay">
+    <div class="modal" style="width:500px;">
+        <h3>Registrar pagamentos em lote</h3>
+        <div id="resumoLote" style="background:#f4f5f7;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:#6b7280;"></div>
+        <form method="post" action="{{ url_for('registrar_pagamento_lote') }}">
+            <input type="hidden" name="origem_q" value="{{ q }}">
+            <input type="hidden" name="origem_aba" value="busca">
+            <div id="loteIds"></div>
+            <div style="display:grid;gap:12px;">
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                    <span class="filter-label">Canal de pagamento *</span>
+                    <select name="canal" required style="padding:7px 10px;border-radius:6px;border:0.5px solid #e2e4e9;font-size:13px;background:#f4f5f7;">
+                        <option value="">Selecione...</option>
+                        <option value="rede">Maquininha Rede</option>
+                        <option value="link_rede">Link Rede</option>
+                        <option value="asaas">Asaas</option>
+                        <option value="c6">C6</option>
+                        <option value="pix_manual">PIX Manual</option>
+                        <option value="dinheiro">Dinheiro</option>
+                        <option value="boleto">Boleto</option>
+                        <option value="outro">Outro</option>
+                    </select>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                    <span class="filter-label">Data do pagamento *</span>
+                    <input type="date" name="data_pagamento" id="loteData" required
+                           style="padding:7px 10px;border-radius:6px;border:0.5px solid #e2e4e9;font-size:13px;background:#f4f5f7;">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                    <span class="filter-label">Registrado por</span>
+                    <input type="text" name="registrado_por" placeholder="Seu nome..."
+                           style="padding:7px 10px;border-radius:6px;border:0.5px solid #e2e4e9;font-size:13px;background:#f4f5f7;">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                    <span class="filter-label">Observação</span>
+                    <textarea name="observacao" rows="2" placeholder="Opcional..."
+                              style="padding:7px 10px;border-radius:6px;border:0.5px solid #e2e4e9;font-size:13px;background:#f4f5f7;resize:vertical;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="closeModal('modalLote')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Confirmar pagamentos</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: registrar pagamento -->
+<div id="modalRegistro" class="modal-overlay">
+    <div class="modal">
+        <h3>Registrar pagamento</h3>
+        <p id="infoRegistro" style="font-size:13px; color:#6b7280; background:#f4f5f7; padding:10px 12px; border-radius:6px; margin-bottom:16px;"></p>
+        <form method="post" action="{{ url_for('registrar_pagamento') }}">
+            <input type="hidden" name="parcela_id" id="reg_parcela_id">
+            <input type="hidden" name="origem_aba" value="{{ aba }}">
+            <input type="hidden" name="origem_de" value="{{ de }}">
+            <input type="hidden" name="origem_ate" value="{{ ate }}">
+            <input type="hidden" name="origem_q" value="{{ q }}">
+            <input type="hidden" name="por_pagina" value="{{ por_pagina }}">
+            <div style="display:grid; gap:12px;">
+                <div class="filter-group" style="display:flex; flex-direction:column; gap:4px;">
+                    <span class="filter-label">Canal de pagamento *</span>
+                    <select name="canal" required style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7;">
+                        <option value="">Selecione...</option>
+                        <option value="rede">Maquininha Rede</option>
+                        <option value="link_rede">Link Rede</option>
+                        <option value="asaas">Asaas</option>
+                        <option value="c6">C6</option>
+                        <option value="pix_manual">PIX Manual</option>
+                        <option value="dinheiro">Dinheiro</option>
+                        <option value="boleto">Boleto</option>
+                        <option value="outro">Outro</option>
+                    </select>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div class="filter-group" style="display:flex; flex-direction:column; gap:4px;">
+                        <span class="filter-label">Valor recebido (R$) *</span>
+                        <input type="number" name="valor_pago" id="reg_valor" step="0.01" min="0.01" required style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7;">
+                    </div>
+                    <div class="filter-group" style="display:flex; flex-direction:column; gap:4px;">
+                        <span class="filter-label">Data do pagamento *</span>
+                        <input type="date" name="data_pagamento" id="reg_data" required style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7;">
+                    </div>
+                </div>
+                <div class="filter-group" style="display:flex; flex-direction:column; gap:4px;">
+                    <span class="filter-label">Registrado por</span>
+                    <input type="text" name="registrado_por" placeholder="Seu nome..." style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7;">
+                </div>
+                <div class="filter-group" style="display:flex; flex-direction:column; gap:4px;">
+                    <span class="filter-label">Observação</span>
+                    <textarea name="observacao" rows="2" placeholder="Opcional..." style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7; resize:vertical;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="closeModal('modalRegistro')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Confirmar pagamento</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: detalhes -->
+<div id="modalDetalhes" class="modal-overlay">
+    <div class="modal" style="width:480px;">
+        <h3>Detalhes do pagamento</h3>
+        <table style="width:100%; border:none; box-shadow:none; margin-bottom:16px;">
+            <tr><td style="padding:7px 0; color:#9099a8; font-size:13px; width:40%;">Aluno</td><td id="det_aluno" style="font-weight:500; font-size:13px;"></td></tr>
+            <tr><td style="padding:7px 0; color:#9099a8; font-size:13px;">Parcela</td><td id="det_parcela" style="font-size:13px;"></td></tr>
+            <tr><td style="padding:7px 0; color:#9099a8; font-size:13px;">Valor original</td><td id="det_valor_original" style="font-size:13px;"></td></tr>
+            <tr><td style="padding:7px 0; color:#9099a8; font-size:13px;">Valor recebido</td><td id="det_valor_pago" style="font-weight:500; color:#1a7f4e; font-size:13px;"></td></tr>
+            <tr><td style="padding:7px 0; color:#9099a8; font-size:13px;">Pago em</td><td id="det_pago_em" style="font-size:13px;"></td></tr>
+            <tr><td style="padding:7px 0; color:#9099a8; font-size:13px;">Canal</td><td id="det_canal" style="font-size:13px;"></td></tr>
+            <tr><td style="padding:7px 0; color:#9099a8; font-size:13px;">Registrado por</td><td id="det_registrado_por" style="font-size:13px;"></td></tr>
+            <tr><td style="padding:7px 0; color:#9099a8; font-size:13px;">Observação</td><td id="det_obs" style="font-size:13px;"></td></tr>
+        </table>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn" onclick="closeModal('modalDetalhes')">Fechar</button>
+            <button class="btn" onclick="abrirEditarPag()" style="color:#3b5bdb; border-color:#c5cff5;">Editar</button>
+            <button class="btn" onclick="abrirEstorno()" style="color:#c0392b; border-color:#fcc;">Estornar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: editar pagamento -->
+<div id="modalEditarPag" class="modal-overlay">
+    <div class="modal" style="width:460px;">
+        <h3>Editar pagamento</h3>
+        <p id="infoEditarPag" style="font-size:13px; color:#6b7280; background:#f4f5f7; padding:10px 12px; border-radius:6px; margin-bottom:16px;"></p>
+        <form method="post" id="formEditarPag">
+            <input type="hidden" name="origem_aba" value="{{ aba }}">
+            <input type="hidden" name="origem_de" value="{{ de }}">
+            <input type="hidden" name="origem_ate" value="{{ ate }}">
+            <input type="hidden" name="origem_q" value="{{ q }}">
+            <input type="hidden" name="por_pagina" value="{{ por_pagina }}">
+            <div style="display:grid; gap:12px;">
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <span class="filter-label">Canal de pagamento *</span>
+                    <select name="canal" id="edit_canal" required
+                        style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7;">
+                        <option value="rede">Maquininha Rede</option>
+                        <option value="link_rede">Link Rede</option>
+                        <option value="asaas">Asaas</option>
+                        <option value="c6">C6</option>
+                        <option value="pix_manual">PIX Manual</option>
+                        <option value="dinheiro">Dinheiro</option>
+                        <option value="boleto">Boleto</option>
+                        <option value="outro">Outro</option>
+                    </select>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                        <span class="filter-label">Valor recebido (R$) *</span>
+                        <input type="number" name="valor_pago" id="edit_valor" step="0.01" min="0.01" required
+                            style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7;">
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                        <span class="filter-label">Data do pagamento *</span>
+                        <input type="date" name="data_pagamento" id="edit_data" required
+                            style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7;">
+                    </div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <span class="filter-label">Registrado por</span>
+                    <input type="text" name="registrado_por" id="edit_reg_por"
+                        style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7;">
+                </div>
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <span class="filter-label">Observação</span>
+                    <textarea name="observacao" id="edit_obs" rows="2"
+                        style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7; resize:vertical;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="closeModal('modalEditarPag'); openModal('modalDetalhes')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: estornar pagamento -->
+<div id="modalEstorno" class="modal-overlay">
+    <div class="modal" style="width:420px;">
+        <h3>Estornar pagamento</h3>
+        <div style="background:#fff3cd; border:0.5px solid #f0c040; border-radius:8px;
+                    padding:12px 14px; margin-bottom:14px; font-size:13px; color:#856404; line-height:1.5;">
+            A parcela voltará para <strong>pendente</strong> ou <strong>atrasado</strong> dependendo do vencimento.
+            O registro fica marcado como estornado para auditoria.
+        </div>
+        <p id="infoEstorno" style="font-size:13px; color:#6b7280; margin-bottom:14px;"></p>
+        <form method="post" id="formEstorno">
+            <input type="hidden" name="origem_aba" value="{{ aba }}">
+            <input type="hidden" name="origem_de" value="{{ de }}">
+            <input type="hidden" name="origem_ate" value="{{ ate }}">
+            <input type="hidden" name="origem_q" value="{{ q }}">
+            <input type="hidden" name="por_pagina" value="{{ por_pagina }}">
+            <div style="display:grid; gap:12px;">
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <span class="filter-label">Estornado por</span>
+                    <input type="text" name="estornado_por" placeholder="Seu nome..."
+                        style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7;">
+                </div>
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <span class="filter-label">Motivo</span>
+                    <textarea name="motivo_estorno" rows="2" placeholder="Opcional..."
+                        style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7; resize:vertical;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="closeModal('modalEstorno'); openModal('modalDetalhes')">Cancelar</button>
+                <button type="submit" class="btn" style="background:#c0392b; color:white; border-color:#c0392b;">Confirmar estorno</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: alterar status -->
+<div id="modalStatus" class="modal-overlay">
+    <div class="modal" style="width:360px;">
+        <h3>Alterar status</h3>
+        <p id="infoStatus" style="font-size:13px; color:#6b7280; margin-bottom:14px;"></p>
+        <form method="post" action="{{ url_for('alterar_status_parcela') }}">
+            <input type="hidden" name="parcela_id" id="status_parcela_id">
+            <input type="hidden" name="origem_aba" value="{{ aba }}">
+            <input type="hidden" name="origem_de" value="{{ de }}">
+            <input type="hidden" name="origem_ate" value="{{ ate }}">
+            <input type="hidden" name="origem_q" value="{{ q }}">
+            <input type="hidden" name="por_pagina" value="{{ por_pagina }}">
+            <div class="filter-group" style="display:flex; flex-direction:column; gap:4px; margin-bottom:20px;">
+                <span class="filter-label">Novo status</span>
+                <select name="novo_status" id="status_select" style="padding:7px 10px; border-radius:6px; border:0.5px solid #e2e4e9; font-size:13px; background:#f4f5f7;">
+                    <option value="pendente">Pendente</option>
+                    <option value="atrasado">Atrasado</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="closeModal('modalStatus')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const hoje = new Date().toISOString().split('T')[0];
+const canaisLabel = {rede:'Maquininha Rede',link_rede:'Link Rede',asaas:'Asaas',c6:'C6',pix_manual:'PIX Manual',dinheiro:'Dinheiro',boleto:'Boleto',outro:'Outro'};
+
+// ── Seleção múltipla na busca ──────────────────────────────
+function atualizarContadorBusca() {
+    const cbs      = document.querySelectorAll('.cb-busca:checked');
+    const contador = document.getElementById('contadorBusca');
+    const btn      = document.getElementById('btnLoteBusca');
+    if (!contador) return;
+    const qtd = cbs.length;
+    contador.textContent = qtd + ' selecionada(s)';
+    btn.disabled = qtd === 0;
+
+    // Atualiza resumo e hidden inputs do modal
+    const container = document.getElementById('loteIds');
+    if (container) {
+        container.innerHTML = '';
+        let total = 0;
+        let linhas = [];
+        cbs.forEach(cb => {
+            const inp = document.createElement('input');
+            inp.type  = 'hidden';
+            inp.name  = 'parcelas_ids';
+            inp.value = cb.dataset.id;
+            container.appendChild(inp);
+            total += parseFloat(cb.dataset.valor);
+            linhas.push('Parc. ' + cb.dataset.parc + ' — ' + cb.dataset.aluno + ' — R$ ' + parseFloat(cb.dataset.valor).toFixed(2));
+        });
+        const resumo = document.getElementById('resumoLote');
+        if (resumo) {
+            resumo.innerHTML = linhas.length
+                ? linhas.join('<br>') + '<br><strong style="color:#1a1d23;">Total: R$ ' + total.toFixed(2) + '</strong>'
+                : '';
+        }
+    }
+}
+
+function toggleTodosBusca(source) {
+    document.querySelectorAll('.cb-busca').forEach(cb => { cb.checked = source.checked; });
+    atualizarContadorBusca();
+}
+
+// Preenche data do lote com hoje ao abrir modal
+const origOpenModal = window.openModal;
+window.openModal = function(id) {
+    if (id === 'modalLote') {
+        const d = document.getElementById('loteData');
+        if (d && !d.value) d.value = hoje;
+    }
+    origOpenModal(id);
+};
+
+function abrirRegistro(id, aluno, parcela, valor) {
+    document.getElementById('reg_parcela_id').value = id;
+    document.getElementById('reg_valor').value = parseFloat(valor).toFixed(2);
+    document.getElementById('reg_data').value = hoje;
+    document.getElementById('infoRegistro').innerHTML = '<strong>' + aluno + '</strong> — Parcela ' + parcela + ' | R$ ' + parseFloat(valor).toFixed(2);
+    openModal('modalRegistro');
+}
+// variável global para guardar o id e dados da parcela atual
+let _parcelaAtual = {};
+
+function abrirDetalhes(id, aluno, parcela, valor, pago_em, canal, valor_pago, obs, reg_por) {
+    _parcelaAtual = {id, aluno, parcela, valor, pago_em, canal, valor_pago, obs, reg_por};
+    document.getElementById('det_aluno').textContent = aluno;
+    document.getElementById('det_parcela').textContent = 'Nº ' + parcela;
+    document.getElementById('det_valor_original').textContent = 'R$ ' + parseFloat(valor).toFixed(2);
+    document.getElementById('det_valor_pago').textContent = 'R$ ' + parseFloat(valor_pago || valor).toFixed(2);
+    document.getElementById('det_pago_em').textContent = pago_em || '—';
+    document.getElementById('det_canal').textContent = canaisLabel[canal] || canal || '—';
+    document.getElementById('det_registrado_por').textContent = reg_por || '—';
+    document.getElementById('det_obs').textContent = obs || '—';
+    openModal('modalDetalhes');
+}
+
+function abrirEditarPag() {
+    const p = _parcelaAtual;
+    document.getElementById('infoEditarPag').innerHTML =
+        '<strong>' + p.aluno + '</strong> — Parcela ' + p.parcela;
+    document.getElementById('edit_canal').value    = p.canal || '';
+    document.getElementById('edit_valor').value   = parseFloat(p.valor_pago || p.valor).toFixed(2);
+    document.getElementById('edit_data').value    = p.pago_em || '';
+    document.getElementById('edit_reg_por').value = p.reg_por || '';
+    document.getElementById('edit_obs').value     = p.obs || '';
+    document.getElementById('formEditarPag').action = '/pagamentos/' + p.id + '/editar';
+    closeModal('modalDetalhes');
+    openModal('modalEditarPag');
+}
+
+function abrirEstorno() {
+    const p = _parcelaAtual;
+    document.getElementById('infoEstorno').innerHTML =
+        '<strong>' + p.aluno + '</strong> — Parcela ' + p.parcela +
+        ' | R$ ' + parseFloat(p.valor_pago || p.valor).toFixed(2) +
+        ' · ' + (p.pago_em || '');
+    document.getElementById('formEstorno').action = '/pagamentos/' + p.id + '/estornar';
+    closeModal('modalDetalhes');
+    openModal('modalEstorno');
+}
+function abrirAlterarStatus(id, aluno, statusAtual) {
+    document.getElementById('status_parcela_id').value = id;
+    document.getElementById('infoStatus').innerHTML = '<strong>' + aluno + '</strong>';
+    document.getElementById('status_select').value = statusAtual === 'atrasado' ? 'pendente' : 'atrasado';
+    openModal('modalStatus');
+}
+</script>
+{% endblock %}
