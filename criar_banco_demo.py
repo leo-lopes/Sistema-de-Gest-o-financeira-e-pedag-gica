@@ -6,7 +6,22 @@ Execute: python criar_banco_demo.py
 Isso cria o arquivo: demo.db
 """
 
-import sqlite3
+import sqlite3CREATE TABLE rematriculas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    aluno_id INTEGER REFERENCES alunos(id),
+    turma_id INTEGER REFERENCES turmas(id),
+    proxima_turma_id INTEGER REFERENCES turmas(id),
+    periodo TEXT,
+    tipo_contrato TEXT,
+    desconto_anterior REAL DEFAULT 0,
+    status TEXT DEFAULT 'pendente',
+    motivo_nao_renovou TEXT,
+    observacoes TEXT,
+    renovacao_automatica INTEGER DEFAULT 0,
+    professor TEXT,
+    criado_em TEXT,
+    atualizado_em TEXT
+);
 import random
 from datetime import date, timedelta
 from pathlib import Path
@@ -113,6 +128,7 @@ CREATE TABLE rematriculas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     aluno_id INTEGER REFERENCES alunos(id),
     turma_id INTEGER REFERENCES turmas(id),
+    proxima_turma_id INTEGER REFERENCES turmas(id),
     periodo TEXT,
     tipo_contrato TEXT,
     desconto_anterior REAL DEFAULT 0,
