@@ -120,6 +120,7 @@ CREATE TABLE rematriculas (
     motivo_nao_renovou TEXT,
     observacoes TEXT,
     renovacao_automatica INTEGER DEFAULT 0,
+    professor TEXT,
     criado_em TEXT,
     atualizado_em TEXT
 );
