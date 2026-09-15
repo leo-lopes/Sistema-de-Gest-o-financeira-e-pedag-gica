@@ -91,7 +91,7 @@ Este projeto nasceu da necessidade real de integrar três fluxos distintos que o
 
 ```bash
 # 1. Clone o repositório
-git clone https://github.com/seu-usuario/ctrlplay-gestao.git
+git clone https://github.com/leo-lopes/ctrlplay-gestao.git
 cd ctrlplay-gestao
 
 # 2. Instale as dependências
