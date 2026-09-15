@@ -4,11 +4,11 @@ Sistema web completo desenvolvido para gestão financeira e pedagógica de uma e
 
 ---
 
-## 🌐 Demo ao vivo
+## Demo ao vivo
 
 **[https://sistema-de-gest-o-financeira-e-pedag-gica.onrender.com](https://sistema-de-gest-o-financeira-e-pedag-gica.onrender.com)**
 
-> ⚠️ O servidor pode levar ~30 segundos para acordar na primeira visita (plano gratuito do Render).
+> O servidor pode levar ~30 segundos para acordar na primeira visita (plano gratuito do Render).
 > Os dados exibidos são fictícios — gerados automaticamente para demonstração.
 
 ---
