@@ -4,6 +4,15 @@ Sistema web completo desenvolvido para gestão financeira e pedagógica de uma e
 
 ---
 
+## 🌐 Demo ao vivo
+
+**[https://sistema-de-gest-o-financeira-e-pedag-gica.onrender.com](https://sistema-de-gest-o-financeira-e-pedag-gica.onrender.com)**
+
+> ⚠️ O servidor pode levar ~30 segundos para acordar na primeira visita (plano gratuito do Render).
+> Os dados exibidos são fictícios — gerados automaticamente para demonstração.
+
+---
+
 ## Contexto
 
 Este projeto nasceu da necessidade real de integrar três fluxos distintos que operavam de forma desconectada: emissão de notas fiscais, controle de pagamentos e acompanhamento de rematrículas. O desafio central foi criar uma solução leve, segura (rodando em rede privada via Tailscale) e fácil de usar por uma equipe não técnica.
@@ -58,6 +67,7 @@ Este projeto nasceu da necessidade real de integrar três fluxos distintos que o
 | Frontend | HTML + CSS (variáveis CSS, dark mode nativo) + JavaScript vanilla |
 | Relatórios | ReportLab (PDF) + OpenPyXL (Excel) |
 | Infraestrutura | Tailscale (rede privada) |
+| Deploy | Render |
 
 ---
 
@@ -81,33 +91,57 @@ Este projeto nasceu da necessidade real de integrar três fluxos distintos que o
 │   ├── migration_v5.py  # Cancelamentos
 │   └── migration_v6.py  # Estorno de pagamentos
 ├── criar_banco_demo.py  # Gera banco com dados fictícios para teste
-├── demo.db              # Banco de demonstração (dados fictícios)
+├── requirements.txt     # Dependências Python
+├── render.yaml          # Configuração de deploy no Render
 └── .gitignore           # Exclui bancos reais e dados sensíveis
 ```
 
 ---
 
-## Como rodar localmente
+## Como acessar
+
+### Opção 1 — Demo online (mais rápido)
+Acesse diretamente:
+**[https://sistema-de-gest-o-financeira-e-pedag-gica.onrender.com](https://sistema-de-gest-o-financeira-e-pedag-gica.onrender.com)**
+
+### Opção 2 — Rodar localmente
 
 ```bash
 # 1. Clone o repositório
-git clone https://github.com/leo-lopes/ctrlplay-gestao.git
-cd ctrlplay-gestao
+git clone https://github.com/leo-lopes/Sistema-de-Gest-o-financeira-e-pedag-gica.git
+cd Sistema-de-Gest-o-financeira-e-pedag-gica
 
 # 2. Instale as dependências
-pip install flask reportlab openpyxl
+pip install -r requirements.txt
 
 # 3. Crie o banco de demonstração
 python criar_banco_demo.py
 
 # 4. Renomeie para o nome esperado pelo sistema
+# Linux/Mac:
 mv demo.db financeiro_escola.db
+# Windows:
+rename demo.db financeiro_escola.db
 
 # 5. Inicie o servidor
 python app3.py
 ```
 
 Acesse: `http://localhost:5000`
+
+### Opção 3 — Deploy próprio no Render (gratuito)
+
+1. Faça fork deste repositório
+2. Acesse [render.com](https://render.com) e crie uma conta com GitHub
+3. Clique em **New → Web Service**
+4. Selecione o repositório forkado
+5. Configure:
+   - **Build Command:** `pip install -r requirements.txt && python criar_banco_demo.py && mv demo.db financeiro_escola.db`
+   - **Start Command:** `gunicorn app3:app --bind 0.0.0.0:$PORT`
+   - **Instance Type:** Free
+6. Clique em **Deploy web service**
+
+Em ~5 minutos o site estará no ar com sua própria URL.
 
 ---
 
