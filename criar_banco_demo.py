@@ -6,7 +6,8 @@ Execute: python criar_banco_demo.py
 Isso cria o arquivo: demo.db
 """
 
-import sqlite3CREATE TABLE rematriculas (
+import sqlite3
+CREATE TABLE rematriculas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     aluno_id INTEGER REFERENCES alunos(id),
     turma_id INTEGER REFERENCES turmas(id),
